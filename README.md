@@ -435,11 +435,15 @@ MIT License - see the [original TOON repository](https://github.com/johannschopp
 
 ## Related Projects
 
-- **TypeScript**: [toon](https://github.com/johannschopplich/toon) (reference implementation)
-- **Python**: [toon-py](https://github.com/bpradana/pytoon)
-- **Ruby**: [toon-ruby](https://github.com/andrepcg/toon-ruby)
-- **PHP**: [toon-php](https://github.com/HelgeSverre/toon-php)
-- **.NET**: [toon.NET](https://github.com/ghost1face/toon.NET)
+- **Elixir:** [toon_ex](https://github.com/kentaro/toon_ex)
+- **PHP:** [toon-php](https://github.com/HelgeSverre/toon-php)
+- **Python:** [pytoon](https://github.com/bpradana/pytoon)
+    - [python-toon](https://github.com/xaviviro/python-toon)
+    - [toon-python](https://gitlab.com/KanTakahiro/toon-python)
+- **Ruby:** [toon-ruby](https://github.com/andrepcg/toon-ruby)
+- **.NET:** [toon.NET](https://github.com/ghost1face/toon.NET)
+- **Swift:** [TOONEncoder](https://github.com/mattt/TOONEncoder)
+- **Go:** [gotoon](https://github.com/alpkeskin/gotoon)
 
 ## Specification
 
