@@ -12,8 +12,8 @@ TOON is a compact, human-readable format designed for passing structured data to
 - 🍱 **Minimal syntax:** removes redundant punctuation (braces, brackets, most quotes)
 - 📐 **Indentation-based structure:** replaces braces with whitespace for better readability
 - 🧺 **Tabular arrays:** declare keys once, then stream rows without repetition
-- 🤖 **Automatic POJO serialization:** works with any Java object out of the box (Gson-based)
-- 🪶 **Lightweight:** only ~280KB total (toon4j + Gson)
+- 🤖 **Automatic POJO serialization:** works with any Java object out of the box (DSL-JSON)
+- 🪶 **Lightweight:** only ~150KB total (toon4j + DSL-JSON)
 - ✨ **Comprehensive type support:** Optional, Stream, primitive arrays, and all Java temporal types
 
 ## Installation
@@ -83,7 +83,7 @@ user:
 - All primitive arrays (int[], double[], boolean[], etc.)
 - All Java temporal types (LocalDate, OffsetDateTime, etc.)
 - Collections (List, Set, Map)
-- **POJOs (automatic serialization via Gson)**
+- **POJOs (automatic serialization via DSL-JSON)**
 
 ✅ **Flexible Configuration**
 - Builder pattern
@@ -93,9 +93,9 @@ user:
 - Optional length markers
 
 ✅ **Lightweight Dependency**
-- Gson for POJO serialization (~230KB)
-- Total footprint: ~280KB (toon4j + Gson)
-- Much lighter than Jackson-based solutions
+- DSL-JSON for POJO serialization (~100KB)
+- Total footprint: ~150KB (toon4j + DSL-JSON)
+- 10x lighter than Jackson-based solutions (150KB vs 2MB)
 
 ## Usage Examples
 
@@ -411,7 +411,7 @@ EncodeOptions.verbose()
 | `List`, `Set`, `Collection` | TOON array format | Tabular if uniform objects |
 | `Map` | TOON object format | String keys required |
 | **POJOs** | | |
-| Custom Java objects | TOON object format | Automatic serialization via Gson |
+| Custom Java objects | TOON object format | Automatic serialization via DSL-JSON |
 | Nested POJOs | Nested TOON objects | Full object graph support |
 | **Special Values** | | |
 | `NaN`, `Infinity` | `null` | Invalid floating point values |

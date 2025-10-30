@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * Examples of encoding POJOs with toon4j.
- * Demonstrates automatic POJO serialization via Gson.
+ * Demonstrates automatic POJO serialization via DSL-JSON.
  */
 public class PojoExample {
 
