@@ -180,13 +180,6 @@
                                 </goals>
                             </execution>
                         </executions>
-                        <configuration>
-                            <executable>C:\Program Files\Git\usr\bin\gpg.exe</executable>
-                            <gpgArguments>
-                                <arg>--pinentry-mode</arg>
-                                <arg>loopback</arg>
-                            </gpgArguments>
-                        </configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
