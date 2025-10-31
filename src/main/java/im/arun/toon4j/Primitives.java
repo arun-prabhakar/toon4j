@@ -42,11 +42,11 @@ public final class Primitives {
     }
 
     // Escape special characters in a string
-    // Optimized: Use pooled StringBuilder and charAt() to avoid array allocation
+    // Optimized: Use local StringBuilder and charAt() to avoid array allocation
+    // NOTE: Don't use ObjectPool here - this method is called nested from joinEncodedValues
     public static String escapeString(String value) {
-        // Use pooled StringBuilder for hot path
-        StringBuilder result = ObjectPool.getStringBuilder();
-        result.ensureCapacity(value.length() + (value.length() / 10));
+        // Use local StringBuilder to avoid nested ThreadLocal conflicts
+        StringBuilder result = new StringBuilder(value.length() + (value.length() / 10));
 
         // Use charAt() instead of toCharArray() to avoid array allocation
         for (int i = 0; i < value.length(); i++) {
@@ -75,9 +75,7 @@ public final class Primitives {
                     }
             }
         }
-        String escaped = result.toString();
-        ObjectPool.returnStringBuilder(result);
-        return escaped;
+        return result.toString();
     }
 
     // Check if a string can be safely used unquoted

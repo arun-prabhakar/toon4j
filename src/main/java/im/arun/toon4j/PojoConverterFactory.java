@@ -3,39 +3,19 @@ package im.arun.toon4j;
 import java.util.Map;
 
 /**
- * Factory for POJO converter using DSL-JSON.
- * DSL-JSON provides ~2x performance vs Jackson, ~4x vs Gson.
+ * Factory for POJO converter using optimized reflection.
+ * Uses cached accessors for high-performance POJO-to-Map conversion.
  */
 final class PojoConverterFactory {
     private PojoConverterFactory() {}
 
-    private static final PojoConverter INSTANCE = createConverter();
+    private static final PojoConverter INSTANCE = new ReflectionPojoConverter();
 
     /**
      * Get the singleton converter instance.
      */
     static PojoConverter getInstance() {
         return INSTANCE;
-    }
-
-    /**
-     * Create DSL-JSON converter.
-     */
-    private static PojoConverter createConverter() {
-        // Check if DSL-JSON is available
-        try {
-            Class.forName("com.dslplatform.json.DslJson");
-            return new DslJsonPojoConverter();
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(
-                "DSL-JSON library not found! Please add it to your dependencies:\n" +
-                "<dependency>\n" +
-                "  <groupId>com.dslplatform</groupId>\n" +
-                "  <artifactId>dsl-json</artifactId>\n" +
-                "  <version>2.0.2</version>\n" +
-                "</dependency>"
-            );
-        }
     }
 
     /**
@@ -48,22 +28,22 @@ final class PojoConverterFactory {
     }
 
     /**
-     * DSL-JSON based converter (high performance).
+     * Reflection-based converter with cached accessors (high performance).
      */
-    static class DslJsonPojoConverter implements PojoConverter {
+    static class ReflectionPojoConverter implements PojoConverter {
         @Override
         public boolean isPojo(Object value) {
-            return DslJsonConverter.isPojo(value);
+            return ReflectionConverter.isPojo(value);
         }
 
         @Override
         public Map<String, Object> toMap(Object pojo) {
-            return DslJsonConverter.toMap(pojo);
+            return ReflectionConverter.toMap(pojo);
         }
 
         @Override
         public String getName() {
-            return "DSL-JSON";
+            return "Optimized Reflection";
         }
     }
 }

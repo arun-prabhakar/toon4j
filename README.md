@@ -1,7 +1,7 @@
 ![TOON logo with step‑by‑step guide](./.github/og.png)
 # TOON4J
 
-Token-Oriented Object Notation (TOON) encoder for Java.
+Token-Oriented Object Notation (TOON) encoder and decoder for Java.
 
 TOON is a compact, human-readable format designed for passing structured data to Large Language Models with significantly reduced token usage. This is the Java implementation port of the [original TOON specification](https://github.com/byjohann/toon).
 
@@ -12,8 +12,9 @@ TOON is a compact, human-readable format designed for passing structured data to
 - 🍱 **Minimal syntax:** removes redundant punctuation (braces, brackets, most quotes)
 - 📐 **Indentation-based structure:** replaces braces with whitespace for better readability
 - 🧺 **Tabular arrays:** declare keys once, then stream rows without repetition
-- 🤖 **Automatic POJO serialization:** works with any Java object out of the box (DSL-JSON)
-- 🪶 **Lightweight:** only ~150KB total (toon4j + DSL-JSON)
+- 🤖 **Automatic POJO serialization:** works with any Java object out of the box (optimized reflection)
+- 🔄 **Full decode support:** parse TOON back into Java objects with strict/lenient modes
+- 🪶 **Zero dependencies:** no external libraries required for encoding/decoding
 - ✨ **Comprehensive type support:** Optional, Stream, primitive arrays, and all Java temporal types
 
 ## Installation
@@ -35,6 +36,8 @@ implementation 'im.arun:toon4j:0.0.1'
 ```
 
 ## Quick Start
+
+### Encoding
 
 ```java
 import im.arun.toon4j.Toon;
@@ -67,6 +70,21 @@ user:
   active: true
 ```
 
+### Decoding
+
+```java
+String toon = """
+    user:
+      id: 123
+      name: Ada
+      tags[2]: reading,gaming
+      active: true
+    """;
+
+Object data = Toon.decode(toon);
+// Returns: {user={id=123, name=Ada, tags=[reading, gaming], active=true}}
+```
+
 ## What's Included
 
 ✅ **Core TOON Encoding**
@@ -74,6 +92,14 @@ user:
 - Arrays (inline, tabular, list formats)
 - Empty containers
 - Root arrays
+
+✅ **Core TOON Decoding**
+- Parse TOON format back to Java objects
+- Support for all TOON features (objects, arrays, primitives)
+- Strict mode with count validation
+- Lenient mode for flexible parsing
+- Custom delimiters (comma, tab, pipe)
+- Escape sequence handling (\n, \t, \\, \")
 
 ✅ **Complete Type Support**
 - All primitives (String, Boolean, Number)
@@ -83,7 +109,7 @@ user:
 - All primitive arrays (int[], double[], boolean[], etc.)
 - All Java temporal types (LocalDate, OffsetDateTime, etc.)
 - Collections (List, Set, Map)
-- **POJOs (automatic serialization via DSL-JSON)**
+- **POJOs (automatic serialization via optimized reflection)**
 
 ✅ **Flexible Configuration**
 - Builder pattern
@@ -92,10 +118,11 @@ user:
 - Custom delimiters (comma, tab, pipe)
 - Optional length markers
 
-✅ **Lightweight Dependency**
-- DSL-JSON for POJO serialization (~100KB)
-- Total footprint: ~150KB (toon4j + DSL-JSON)
-- 10x lighter than Jackson-based solutions (150KB vs 2MB)
+✅ **Zero Dependencies**
+- No external libraries required
+- Pure Java implementation
+- Optimized reflection for POJO conversion
+- Cached accessors for performance
 
 ## Usage Examples
 
@@ -120,7 +147,7 @@ active: true
 
 ### POJOs (Automatic Serialization)
 
-toon4j automatically serializes any Java object (POJO) without manual conversion:
+toon4j automatically serializes any Java object (POJO) using optimized reflection:
 
 ```java
 public class User {
@@ -271,6 +298,100 @@ emptyValue: null
 numbers[5]: 1,2,3,4,5
 ```
 
+## Decode Examples
+
+### Simple Decoding
+
+```java
+String toon = """
+    id: 123
+    name: Ada
+    active: true
+    """;
+
+Map<?, ?> data = (Map<?, ?>) Toon.decode(toon);
+System.out.println(data.get("id"));     // 123
+System.out.println(data.get("name"));   // Ada
+System.out.println(data.get("active")); // true
+```
+
+### Decoding Arrays
+
+```java
+// Inline arrays
+String toon1 = "tags[3]: reading,gaming,coding";
+Map<?, ?> result1 = (Map<?, ?>) Toon.decode(toon1);
+List<?> tags = (List<?>) result1.get("tags");
+// ["reading", "gaming", "coding"]
+
+// Tabular arrays
+String toon2 = """
+    items[2]{sku,qty}:
+      A1,2
+      B2,1
+    """;
+Map<?, ?> result2 = (Map<?, ?>) Toon.decode(toon2);
+List<?> items = (List<?>) result2.get("items");
+// [{sku=A1, qty=2}, {sku=B2, qty=1}]
+
+// List arrays
+String toon3 = """
+    items[2]:
+      - id: 1
+        name: First
+      - id: 2
+        name: Second
+    """;
+Map<?, ?> result3 = (Map<?, ?>) Toon.decode(toon3);
+// {items=[{id=1, name=First}, {id=2, name=Second}]}
+```
+
+### Decoding with Custom Delimiters
+
+```java
+// Pipe delimiter
+String toon1 = "tags[3|]: a|b|c";
+Map<?, ?> result = (Map<?, ?>) Toon.decode(toon1);
+
+// Tab delimiter
+String toon2 = "items[2\t]: x\ty";
+Map<?, ?> result2 = (Map<?, ?>) Toon.decode(toon2);
+```
+
+### Lenient Mode
+
+```java
+// Strict mode (default) - throws error if count mismatch
+String toon = "items[3]: a,b";  // Declared 3, but only 2 values
+// Toon.decode(toon);  // Throws IllegalArgumentException
+
+// Lenient mode - accepts count mismatch
+DecodeOptions options = DecodeOptions.lenient();
+Map<?, ?> result = (Map<?, ?>) Toon.decode(toon, options);
+List<?> items = (List<?>) result.get("items");
+// items.size() == 2 (lenient mode accepts it)
+```
+
+### Round-Trip Encoding/Decoding
+
+```java
+Map<String, Object> original = Map.of(
+    "id", 123,
+    "name", "Ada",
+    "tags", List.of("reading", "gaming")
+);
+
+// Encode to TOON
+String toon = Toon.encode(original);
+
+// Decode back to Java
+Map<?, ?> decoded = (Map<?, ?>) Toon.decode(toon);
+
+// Values match
+assert decoded.get("id").equals(123);
+assert decoded.get("name").equals("Ada");
+```
+
 ### Primitive Arrays
 
 ```java
@@ -311,14 +432,14 @@ Toon.encode(data);
 
 ## API Reference
 
-### Main API
+### Encoding API
 
 #### `Toon.encode(Object value)`
 
 Encode a value to TOON format with default options.
 
 **Parameters:**
-- `value` - Any JSON-serializable value (Map, List, primitive)
+- `value` - Any JSON-serializable value (Map, List, primitive, POJO)
 
 **Returns:** TOON-formatted string
 
@@ -327,10 +448,35 @@ Encode a value to TOON format with default options.
 Encode a value to TOON format with custom options.
 
 **Parameters:**
-- `value` - Any JSON-serializable value (Map, List, primitive)
+- `value` - Any JSON-serializable value (Map, List, primitive, POJO)
 - `options` - Encoding options
 
 **Returns:** TOON-formatted string
+
+### Decoding API
+
+#### `Toon.decode(String input)`
+
+Decode TOON format string to Java objects with default options (indent=2, strict=true).
+
+**Parameters:**
+- `input` - TOON-formatted string
+
+**Returns:** Decoded value (Map, List, or primitive)
+
+**Throws:** `IllegalArgumentException` if input is invalid or empty
+
+#### `Toon.decode(String input, DecodeOptions options)`
+
+Decode TOON format string to Java objects with custom options.
+
+**Parameters:**
+- `input` - TOON-formatted string
+- `options` - Decoding options (indent size, strict validation)
+
+**Returns:** Decoded value (Map, List, or primitive)
+
+**Throws:** `IllegalArgumentException` if input is invalid or empty
 
 ### EncodeOptions
 
@@ -377,6 +523,39 @@ EncodeOptions.verbose()
 - `Delimiter.TAB` - Use tab as delimiter
 - `Delimiter.PIPE` - Use pipe as delimiter
 
+### DecodeOptions
+
+Configuration for decoding behavior.
+
+#### Constructors
+
+```java
+// Default options (indent=2, strict=true)
+new DecodeOptions()
+
+// Custom indent
+new DecodeOptions(4)
+
+// Custom indent and strict mode
+new DecodeOptions(4, true)
+```
+
+#### Factory Methods
+
+```java
+// Lenient mode (no strict validation)
+DecodeOptions.lenient()
+
+// Lenient mode with custom indent
+DecodeOptions.lenient(4)
+```
+
+**Options:**
+- `indent` (int) - Number of spaces per indentation level (default: 2)
+- `strict` (boolean) - Enable strict validation (default: true)
+  - **Strict mode:** Validates array counts, indentation rules, no tabs
+  - **Lenient mode:** Flexible parsing, accepts count mismatches
+
 ## Type Conversions
 
 | Java Type | TOON Output | Notes |
@@ -411,7 +590,7 @@ EncodeOptions.verbose()
 | `List`, `Set`, `Collection` | TOON array format | Tabular if uniform objects |
 | `Map` | TOON object format | String keys required |
 | **POJOs** | | |
-| Custom Java objects | TOON object format | Automatic serialization via DSL-JSON |
+| Custom Java objects | TOON object format | Automatic serialization via optimized reflection |
 | Nested POJOs | Nested TOON objects | Full object graph support |
 | **Special Values** | | |
 | `NaN`, `Infinity` | `null` | Invalid floating point values |
