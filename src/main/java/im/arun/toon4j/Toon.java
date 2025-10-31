@@ -1,12 +1,12 @@
 package im.arun.toon4j;
 
 /**
- * Token-Oriented Object Notation (TOON) encoder for Java.
+ * Token-Oriented Object Notation (TOON) encoder and decoder for Java.
  *
  * TOON is a compact, human-readable format designed for passing structured data
  * to Large Language Models with significantly reduced token usage.
  *
- * Example usage:
+ * Example encoding:
  * <pre>
  * Map&lt;String, Object&gt; data = Map.of(
  *     "user", Map.of(
@@ -25,6 +25,19 @@ package im.arun.toon4j;
  * //   name: Ada
  * //   tags[2]: reading,gaming
  * //   active: true
+ * </pre>
+ *
+ * Example decoding:
+ * <pre>
+ * String toon = """
+ *     id: 123
+ *     name: Ada
+ *     tags[2]: reading,gaming
+ *     active: true
+ *     """;
+ *
+ * Object data = Toon.decode(toon);
+ * // Returns: {id=123, name=Ada, tags=[reading, gaming], active=true}
  * </pre>
  */
 public final class Toon {
@@ -62,5 +75,41 @@ public final class Toon {
 
         // Encode the normalized value
         return Encoders.encodeValue(normalized, options);
+    }
+
+    /**
+     * Decode TOON format string to Java objects with default options.
+     *
+     * @param input TOON-formatted string
+     * @return decoded value (Map, List, or primitive)
+     * @throws IllegalArgumentException if input is invalid or empty
+     */
+    public static Object decode(String input) {
+        return decode(input, new DecodeOptions());
+    }
+
+    /**
+     * Decode TOON format string to Java objects with custom options.
+     *
+     * @param input TOON-formatted string
+     * @param options decoding options (indent size, strict validation)
+     * @return decoded value (Map, List, or primitive)
+     * @throws IllegalArgumentException if input is invalid or empty
+     */
+    public static Object decode(String input, DecodeOptions options) {
+        if (input == null || input.trim().isEmpty()) {
+            throw new IllegalArgumentException("Cannot decode empty input: input must be a non-empty string");
+        }
+
+        // Scan input into parsed lines
+        java.util.List<ParsedLine> lines = Scanner.scan(input, options.getIndent(), options.isStrict());
+
+        if (lines.isEmpty()) {
+            throw new IllegalArgumentException("Cannot decode empty input: input must be a non-empty string");
+        }
+
+        // Create cursor and decode
+        LineCursor cursor = new LineCursor(lines);
+        return ToonDecoders.decodeValue(cursor, options);
     }
 }

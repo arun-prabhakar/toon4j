@@ -151,6 +151,7 @@ public final class Encoders {
         return null;
     }
 
+    // Optimized: Avoid double Map lookup (containsKey + get)
     private static boolean isTabularArray(List<Map<String, Object>> rows, List<String> header) {
         for (Map<String, Object> row : rows) {
             // Check same number of keys
@@ -159,11 +160,14 @@ public final class Encoders {
             }
 
             // Check all header keys exist and all values are primitives
+            // Single Map lookup per key instead of containsKey + get
             for (String key : header) {
-                if (!row.containsKey(key)) {
+                Object value = row.get(key);
+                // null value might be valid if key exists, or indicate missing key
+                if (value == null && !row.containsKey(key)) {
                     return false;
                 }
-                if (!Normalize.isJsonPrimitive(row.get(key))) {
+                if (!Normalize.isJsonPrimitive(value)) {
                     return false;
                 }
             }
@@ -171,9 +175,11 @@ public final class Encoders {
         return true;
     }
 
+    // Optimized: Pre-size ArrayList to avoid resizing
     private static void writeTabularRows(List<Map<String, Object>> rows, List<String> header, LineWriter writer, int depth, EncodeOptions options) {
+        int headerSize = header.size();
         for (Map<String, Object> row : rows) {
-            List<Object> values = new ArrayList<>();
+            List<Object> values = new ArrayList<>(headerSize); // Pre-sized!
             for (String key : header) {
                 values.add(row.get(key));
             }

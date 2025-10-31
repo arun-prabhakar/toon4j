@@ -42,9 +42,15 @@ public final class Primitives {
     }
 
     // Escape special characters in a string
+    // Optimized: Use local StringBuilder and charAt() to avoid array allocation
+    // NOTE: Don't use ObjectPool here - this method is called nested from joinEncodedValues
     public static String escapeString(String value) {
-        StringBuilder result = new StringBuilder();
-        for (char c : value.toCharArray()) {
+        // Use local StringBuilder to avoid nested ThreadLocal conflicts
+        StringBuilder result = new StringBuilder(value.length() + (value.length() / 10));
+
+        // Use charAt() instead of toCharArray() to avoid array allocation
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
             switch (c) {
                 case '\\':
                     result.append("\\\\");
@@ -73,6 +79,7 @@ public final class Primitives {
     }
 
     // Check if a string can be safely used unquoted
+    // Optimized: Single pass through the string instead of multiple contains() and regex calls
     public static boolean isSafeUnquoted(String value, String delimiter) {
         if (value == null || value.isEmpty()) {
             return false;
@@ -93,37 +100,33 @@ public final class Primitives {
             return false;
         }
 
-        // Check for colon (always structural)
-        if (value.contains(":")) {
-            return false;
-        }
-
-        // Check for quotes and backslash
-        if (value.contains("\"") || value.contains("\\")) {
-            return false;
-        }
-
-        // Check for brackets and braces
-        if (value.matches(".*[\\[\\]{}].*")) {
-            return false;
-        }
-
-        // Check for control characters
-        if (value.matches(".*[\\n\\r\\t].*")) {
-            return false;
-        }
-
-        // Check for the active delimiter
-        if (value.contains(delimiter)) {
-            return false;
-        }
-
         // Check for list marker at start
         if (value.startsWith(LIST_ITEM_MARKER)) {
             return false;
         }
 
-        return true;
+        // Single pass through string checking all special characters
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+
+            // Check for structural characters
+            if (c == ':' || c == '"' || c == '\\' ||
+                c == '[' || c == ']' || c == '{' || c == '}') {
+                return false;
+            }
+
+            // Check for control characters
+            if (c == '\n' || c == '\r' || c == '\t' || c < 32) {
+                return false;
+            }
+        }
+
+        // Check for active delimiter (optimized for single-char delimiters)
+        if (delimiter.length() == 1) {
+            return value.indexOf(delimiter.charAt(0)) == -1;
+        } else {
+            return !value.contains(delimiter);
+        }
     }
 
     private static boolean isNumericLike(String value) {
@@ -147,15 +150,26 @@ public final class Primitives {
     }
 
     // Join encoded values with delimiter
+    // Optimized: Use pooled StringBuilder to avoid allocation
     public static String joinEncodedValues(List<?> values, String delimiter) {
-        StringBuilder result = new StringBuilder();
+        if (values.isEmpty()) {
+            return "";
+        }
+
+        // Use pooled StringBuilder for hot path
+        StringBuilder result = ObjectPool.getStringBuilder();
+        int estimatedSize = values.size() * (10 + delimiter.length());
+        result.ensureCapacity(estimatedSize);
+
         for (int i = 0; i < values.size(); i++) {
             if (i > 0) {
                 result.append(delimiter);
             }
             result.append(encodePrimitive(values.get(i), delimiter));
         }
-        return result.toString();
+        String joined = result.toString();
+        ObjectPool.returnStringBuilder(result);
+        return joined;
     }
 
     // Format an array header

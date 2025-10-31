@@ -10,19 +10,23 @@ import java.util.stream.Stream;
 public final class Normalize {
     private Normalize() {}
 
+    // Get converter instance (DSL-JSON)
+    private static final PojoConverterFactory.PojoConverter converter = PojoConverterFactory.getInstance();
+
     public static Object normalizeValue(Object value) {
         if (value == null) {
             return null;
         }
 
-        // POJOs - convert to Map using Gson before normalization
-        if (GsonConverter.isPojo(value)) {
-            Map<String, Object> map = GsonConverter.toMap(value);
-            return normalizeValue(map);  // Recursively normalize the converted map
+        // Fast path: Most common types first (reduces average instanceof checks)
+
+        // String (most common primitive)
+        if (value instanceof String) {
+            return value;
         }
 
-        // Primitives
-        if (value instanceof String || value instanceof Boolean) {
+        // Boolean (common primitive)
+        if (value instanceof Boolean) {
             return value;
         }
 
@@ -54,26 +58,36 @@ public final class Normalize {
             return normalizeNumber((Number) value);
         }
 
-        // Optional - unwrap or return null
-        if (value instanceof Optional) {
-            Optional<?> opt = (Optional<?>) value;
-            return opt.map(Normalize::normalizeValue).orElse(null);
+        // Map (common for objects)
+        if (value instanceof Map) {
+            Map<String, Object> normalized = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+                String key = String.valueOf(entry.getKey());
+                normalized.put(key, normalizeValue(entry.getValue()));
+            }
+            return normalized;
         }
 
-        // Stream - materialize to list
-        if (value instanceof Stream) {
-            Stream<?> stream = (Stream<?>) value;
+        // Collections (common for arrays)
+        if (value instanceof Collection) {
             List<Object> list = new ArrayList<>();
-            stream.forEach(item -> list.add(normalizeValue(item)));
+            for (Object item : (Collection<?>) value) {
+                list.add(normalizeValue(item));
+            }
             return list;
         }
 
-        // Date/Time types
-        if (value instanceof Date) {
-            return ((Date) value).toInstant().toString();
+        // Primitive arrays
+        if (value.getClass().isArray()) {
+            return normalizePrimitiveArray(value);
         }
+
+        // Date/Time types (less common, but important)
         if (value instanceof Instant) {
             return ((Instant) value).toString();
+        }
+        if (value instanceof Date) {
+            return ((Date) value).toInstant().toString();
         }
         if (value instanceof ZonedDateTime) {
             return ((ZonedDateTime) value).format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
@@ -91,28 +105,24 @@ public final class Normalize {
             return ((LocalTime) value).format(DateTimeFormatter.ISO_LOCAL_TIME);
         }
 
-        // Collections
-        if (value instanceof Collection) {
+        // Optional - unwrap or return null
+        if (value instanceof Optional) {
+            Optional<?> opt = (Optional<?>) value;
+            return opt.map(Normalize::normalizeValue).orElse(null);
+        }
+
+        // Stream - materialize to list
+        if (value instanceof Stream) {
+            Stream<?> stream = (Stream<?>) value;
             List<Object> list = new ArrayList<>();
-            for (Object item : (Collection<?>) value) {
-                list.add(normalizeValue(item));
-            }
+            stream.forEach(item -> list.add(normalizeValue(item)));
             return list;
         }
 
-        // Primitive arrays
-        if (value.getClass().isArray()) {
-            return normalizePrimitiveArray(value);
-        }
-
-        // Map
-        if (value instanceof Map) {
-            Map<String, Object> normalized = new LinkedHashMap<>();
-            for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
-                String key = String.valueOf(entry.getKey());
-                normalized.put(key, normalizeValue(entry.getValue()));
-            }
-            return normalized;
+        // POJOs - convert to Map using DSL-JSON converter (check last, as it's expensive)
+        if (converter.isPojo(value)) {
+            Map<String, Object> map = converter.toMap(value);
+            return normalizeValue(map);  // Recursively normalize the converted map
         }
 
         // Unsupported types return null

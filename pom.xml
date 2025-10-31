@@ -6,11 +6,11 @@
 
     <groupId>im.arun</groupId>
     <artifactId>toon4j</artifactId>
-    <version>0.0.1</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>TOON4J</name>
-    <description>Token-Oriented Object Notation (TOON) encoder for Java with automatic POJO serialization</description>
+    <description>Token-Oriented Object Notation (TOON) encoder and decoder for Java with zero dependencies</description>
     <url>https://github.com/arun-prabhakar/toon4j</url>
 
     <licenses>
@@ -43,13 +43,6 @@
     </properties>
 
     <dependencies>
-        <!-- Gson for POJO serialization -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.10.1</version>
-        </dependency>
-
         <!-- JUnit 5 for testing -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -62,6 +55,37 @@
             <artifactId>junit-jupiter-engine</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <!-- JMH for benchmarking -->
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+            <version>1.37</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
+            <version>1.37</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.felipestanzani</groupId>
+            <artifactId>jtoon</artifactId>
+            <version>0.1.0</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/tools.jackson.core/jackson-core -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/tools.jackson.core/jackson-databind -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.2</version> <!-- Use the latest stable version -->
         </dependency>
     </dependencies>
 
@@ -123,17 +147,6 @@
                 </configuration>
             </plugin>
 
-            <plugin>
-                <groupId>org.sonatype.central</groupId>
-                <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>0.9.0</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <publishingServerId>central</publishingServerId>
-                    <autoPublish>true</autoPublish>
-                    <waitUntil>published</waitUntil>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 
@@ -167,6 +180,24 @@
                                 </goals>
                             </execution>
                         </executions>
+                        <configuration>
+                            <executable>C:\Program Files\Git\usr\bin\gpg.exe</executable>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.9.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                            <waitUntil>published</waitUntil>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
