@@ -25,14 +25,14 @@ TOON is a compact, human-readable format designed for passing structured data to
 <dependency>
     <groupId>im.arun</groupId>
     <artifactId>toon4j</artifactId>
-    <version>0.0.1</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```gradle
-implementation 'im.arun:toon4j:0.0.1'
+implementation 'im.arun:toon4j:1.0.0'
 ```
 
 ## Quick Start
