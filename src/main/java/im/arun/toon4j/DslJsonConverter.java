@@ -3,27 +3,25 @@ package im.arun.toon4j;
 import com.dslplatform.json.*;
 import com.dslplatform.json.runtime.Settings;
 
-import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * High-performance POJO to Map converter using DSL-JSON.
- * ~2x faster than Jackson, ~4x faster than Gson.
+ * High-performance POJO to Map converter built for TOON.
  * Internal use only.
  */
 final class DslJsonConverter {
     private DslJsonConverter() {}
 
     private static final DslJson<Object> dslJson = new DslJson<>(Settings.withRuntime().includeServiceLoader());
-
     // Reflection cache for POJO to Map conversion
     private static final ConcurrentHashMap<Class<?>, List<Accessor>> reflectionCache = new ConcurrentHashMap<>();
 
@@ -46,7 +44,11 @@ final class DslJsonConverter {
         FieldAccessor(String name, Field field) {
             super(name);
             this.field = field;
-            field.setAccessible(true);
+            try {
+                field.setAccessible(true);
+            } catch (Exception ignored) {
+                // ignore - reflective access will fail gracefully later
+            }
         }
 
         @Override
@@ -83,6 +85,7 @@ final class DslJsonConverter {
             value instanceof Number ||
             value instanceof Boolean ||
             value instanceof Character ||
+            value instanceof Enum<?> ||
             value instanceof Map ||
             value instanceof Iterable ||
             value.getClass().isArray()) {
@@ -109,8 +112,8 @@ final class DslJsonConverter {
     }
 
     /**
-     * Convert a POJO to a Map using DSL-JSON.
-     * Strategy: DSL-JSON serialization (very fast) + simple JSON parser (still faster overall).
+     * Convert a POJO to a Map representation.
+     * Strategy: cache fast reflection accessors and recursively materialize nested structures.
      */
     @SuppressWarnings("unchecked")
     static Map<String, Object> toMap(Object pojo) {
@@ -118,33 +121,27 @@ final class DslJsonConverter {
             return null;
         }
 
-        try {
-            // Serialize POJO to JSON string using DSL-JSON (this is the fast part)
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
-            dslJson.serialize(pojo, os);
-            String json = os.toString(StandardCharsets.UTF_8.name());
-
-            // Parse JSON string to Map using simple parser
-            return (Map<String, Object>) parseJson(json);
-        } catch (Exception e) {
-            // Fallback: reflectively map POJO fields/getters
-            // This avoids forcing users to add annotations/serializers for simple cases.
-            return reflectPojoToMap(pojo);
-        }
+        return reflectPojoToMap(pojo, new IdentityHashMap<>());
     }
 
-    // Reflection fallback for POJO -> Map when DSL-JSON can't serialize the class
-    private static Map<String, Object> reflectPojoToMap(Object pojo) {
+    // Reflection path for POJO -> Map conversion
+    private static Map<String, Object> reflectPojoToMap(Object pojo, IdentityHashMap<Object, Object> seen) {
         Class<?> cls = pojo.getClass();
 
         // Get or compute cached accessors
         List<Accessor> accessors = reflectionCache.computeIfAbsent(cls, DslJsonConverter::buildAccessors);
 
         Map<String, Object> out = new LinkedHashMap<>(accessors.size());
+        Object existing = seen.putIfAbsent(pojo, out);
+        if (existing instanceof Map) {
+            // Already materialized - reuse it directly to break cycles
+            return (Map<String, Object>) existing;
+        }
+
         for (Accessor accessor : accessors) {
             try {
                 Object value = accessor.getValue(pojo);
-                out.put(accessor.name, value);
+                out.put(accessor.name, normalize(value, seen));
             } catch (Throwable ignored) {
                 // Skip this accessor if it fails
             }
@@ -165,6 +162,11 @@ final class DslJsonConverter {
                 var components = cls.getRecordComponents();
                 for (var c : components) {
                     Method acc = c.getAccessor();
+                    try {
+                        acc.setAccessible(true);
+                    } catch (Exception ignored) {
+                        // continue with best-effort reflective access
+                    }
                     accessors.add(new MethodAccessor(c.getName(), acc));
                 }
                 return accessors;
@@ -198,7 +200,13 @@ final class DslJsonConverter {
             }
 
             for (Map.Entry<String, Method> entry : getters.entrySet()) {
-                accessors.add(new MethodAccessor(entry.getKey(), entry.getValue()));
+                Method method = entry.getValue();
+                try {
+                    method.setAccessible(true);
+                } catch (Exception ignored) {
+                    // fall through - we'll attempt invocation regardless
+                }
+                accessors.add(new MethodAccessor(entry.getKey(), method));
             }
         } catch (Throwable ignored) {
             // Ignore and proceed to fields
@@ -211,6 +219,11 @@ final class DslJsonConverter {
                 Field[] fields = c.getDeclaredFields();
                 for (Field f : fields) {
                     if (Modifier.isStatic(f.getModifiers())) continue;
+                    try {
+                        f.setAccessible(true);
+                    } catch (Exception ignored) {
+                        // ignore - reflective access will fail gracefully later
+                    }
                     accessors.add(new FieldAccessor(f.getName(), f));
                 }
                 c = c.getSuperclass();
@@ -229,195 +242,71 @@ final class DslJsonConverter {
     }
 
     /**
-     * Simple JSON parser that converts to Map/List structures.
-     * Much simpler and more reliable than using DSL-JSON's complex reader API.
-     */
-    private static Object parseJson(String json) {
-        return new SimpleJsonParser(json).parse();
-    }
-
-    /**
-     * Simple JSON parser for Map/List structures.
-     * Not a full JSON parser, but sufficient for our needs.
-     */
-    private static class SimpleJsonParser {
-        private final String json;
-        private int pos = 0;
-
-        SimpleJsonParser(String json) {
-            this.json = json;
-        }
-
-        Object parse() {
-            skipWhitespace();
-            return parseValue();
-        }
-
-        private Object parseValue() {
-            skipWhitespace();
-            char c = current();
-
-            if (c == '{') return parseObject();
-            if (c == '[') return parseArray();
-            if (c == '"') return parseString();
-            if (c == 't') return parseTrue();
-            if (c == 'f') return parseFalse();
-            if (c == 'n') return parseNull();
-            if (c == '-' || Character.isDigit(c)) return parseNumber();
-
-            throw new RuntimeException("Unexpected character: " + c);
-        }
-
-        private Map<String, Object> parseObject() {
-            Map<String, Object> map = new LinkedHashMap<>();
-            consume('{');
-            skipWhitespace();
-
-            if (current() == '}') {
-                consume('}');
-                return map;
-            }
-
-            while (true) {
-                skipWhitespace();
-                String key = parseString();
-                skipWhitespace();
-                consume(':');
-                skipWhitespace();
-                Object value = parseValue();
-                map.put(key, value);
-
-                skipWhitespace();
-                if (current() == '}') {
-                    consume('}');
-                    break;
-                }
-                consume(',');
-            }
-
-            return map;
-        }
-
-        private List<Object> parseArray() {
-            List<Object> list = new ArrayList<>();
-            consume('[');
-            skipWhitespace();
-
-            if (current() == ']') {
-                consume(']');
-                return list;
-            }
-
-            while (true) {
-                skipWhitespace();
-                list.add(parseValue());
-                skipWhitespace();
-
-                if (current() == ']') {
-                    consume(']');
-                    break;
-                }
-                consume(',');
-            }
-
-            return list;
-        }
-
-        private String parseString() {
-            consume('"');
-            StringBuilder sb = new StringBuilder();
-
-            while (current() != '"') {
-                if (current() == '\\') {
-                    pos++;
-                    char escaped = current();
-                    switch (escaped) {
-                        case '"': sb.append('"'); break;
-                        case '\\': sb.append('\\'); break;
-                        case '/': sb.append('/'); break;
-                        case 'b': sb.append('\b'); break;
-                        case 'f': sb.append('\f'); break;
-                        case 'n': sb.append('\n'); break;
-                        case 'r': sb.append('\r'); break;
-                        case 't': sb.append('\t'); break;
-                        case 'u': // Unicode escape
-                            pos++;
-                            String hex = json.substring(pos, pos + 4);
-                            sb.append((char) Integer.parseInt(hex, 16));
-                            pos += 3; // +3 because we'll ++pos at the end
-                            break;
-                        default:
-                            sb.append(escaped);
-                    }
-                } else {
-                    sb.append(current());
-                }
-                pos++;
-            }
-
-            consume('"');
-            return sb.toString();
-        }
-
-        private Number parseNumber() {
-            int start = pos;
-            if (current() == '-') pos++;
-
-            while (pos < json.length() && (Character.isDigit(current()) ||
-                   current() == '.' || current() == 'e' || current() == 'E' ||
-                   current() == '+' || current() == '-')) {
-                pos++;
-            }
-
-            String num = json.substring(start, pos);
-            if (num.contains(".") || num.contains("e") || num.contains("E")) {
-                return Double.parseDouble(num);
-            } else {
-                long val = Long.parseLong(num);
-                if (val >= Integer.MIN_VALUE && val <= Integer.MAX_VALUE) {
-                    return (int) val;
-                }
-                return val;
-            }
-        }
-
-        private Boolean parseTrue() {
-            consume('t'); consume('r'); consume('u'); consume('e');
-            return true;
-        }
-
-        private Boolean parseFalse() {
-            consume('f'); consume('a'); consume('l'); consume('s'); consume('e');
-            return false;
-        }
-
-        private Object parseNull() {
-            consume('n'); consume('u'); consume('l'); consume('l');
-            return null;
-        }
-
-        private void skipWhitespace() {
-            while (pos < json.length() && Character.isWhitespace(current())) {
-                pos++;
-            }
-        }
-
-        private char current() {
-            return json.charAt(pos);
-        }
-
-        private void consume(char expected) {
-            if (current() != expected) {
-                throw new RuntimeException("Expected '" + expected + "' but got '" + current() + "'");
-            }
-            pos++;
-        }
-    }
-
-    /**
      * Get the DslJson instance (for future extensions).
      */
     static DslJson<Object> getDslJson() {
         return dslJson;
+    }
+
+    private static Object normalize(Object value, IdentityHashMap<Object, Object> seen) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof Map<?, ?> map) {
+            Object cached = seen.get(value);
+            if (cached instanceof Map) {
+                return cached;
+            }
+
+            Map<String, Object> normalized = new LinkedHashMap<>(map.size());
+            seen.put(value, normalized);
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                Object key = entry.getKey();
+                String normalizedKey = key == null ? "null" : key.toString();
+                normalized.put(normalizedKey, normalize(entry.getValue(), seen));
+            }
+            return normalized;
+        }
+
+        if (value instanceof Iterable<?> iterable) {
+            Object cached = seen.get(value);
+            if (cached instanceof List) {
+                return cached;
+            }
+
+            List<Object> list = new ArrayList<>();
+            seen.put(value, list);
+            for (Object element : iterable) {
+                list.add(normalize(element, seen));
+            }
+            return list;
+        }
+
+        Class<?> valueClass = value.getClass();
+        if (valueClass.isArray()) {
+            Object cached = seen.get(value);
+            if (cached instanceof List) {
+                return cached;
+            }
+
+            int length = Array.getLength(value);
+            List<Object> list = new ArrayList<>(length);
+            seen.put(value, list);
+            for (int i = 0; i < length; i++) {
+                list.add(normalize(Array.get(value, i), seen));
+            }
+            return list;
+        }
+
+        if (valueClass.isEnum()) {
+            return ((Enum<?>) value).name();
+        }
+
+        if (isPojo(value)) {
+            return reflectPojoToMap(value, seen);
+        }
+
+        return value;
     }
 }
