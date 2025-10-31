@@ -21,9 +21,9 @@ final class ToonDecoders {
 
         ParsedLine first = cursor.peek();
 
-        // Check for root array: [N]: values
+        // Check for root array: [N]: values (only if no key before bracket)
         ArrayHeader header = parseArrayHeader(first.content);
-        if (header != null) {
+        if (header != null && header.key == null) {
             cursor.advance();
             return decodeArray(header, cursor, 0, options);
         }
@@ -67,7 +67,18 @@ final class ToonDecoders {
                                            Map<String, Object> obj, DecodeOptions options) {
         String content = line.content;
 
-        // Find the key
+        cursor.advance();
+
+        // Check for array header first (special case: key[N]: or key[N]{fields}:)
+        ArrayHeader header = parseArrayHeader(content);
+        if (header != null && header.key != null) {
+            // This is an array value with a key
+            Object value = decodeArray(header, cursor, baseDepth, options);
+            obj.put(header.key, value);
+            return;
+        }
+
+        // Normal key-value pair
         String key = parseKey(content);
 
         // Find colon position
@@ -82,18 +93,11 @@ final class ToonDecoders {
         // Extract value after colon
         String valueStr = content.substring(colonPos + 1).trim();
 
-        cursor.advance();
-
         // Determine value type
         Object value;
 
-        // Check for array header
-        ArrayHeader header = parseArrayHeader(content);
-        if (header != null) {
-            value = decodeArray(header, cursor, baseDepth, options);
-        }
         // Check for nested object (next line is deeper)
-        else if (valueStr.isEmpty() && !cursor.atEnd() && cursor.peek().depth > baseDepth) {
+        if (valueStr.isEmpty() && !cursor.atEnd() && cursor.peek().depth > baseDepth) {
             value = decodeObject(cursor, baseDepth + 1, options);
         }
         // Primitive value
@@ -280,14 +284,14 @@ final class ToonDecoders {
             obj.put(key, parsePrimitive(valueStr));
         }
 
-        // Parse remaining fields at same depth
+        // Parse remaining fields at depth baseDepth + 1 (indented relative to "- ")
         while (!cursor.atEnd()) {
             ParsedLine line = cursor.peek();
-            if (line.depth < baseDepth) {
+            if (line.depth < baseDepth + 1) {
                 break;
             }
-            if (line.depth == baseDepth) {
-                decodeKeyValuePair(line, cursor, baseDepth, obj, options);
+            if (line.depth == baseDepth + 1) {
+                decodeKeyValuePair(line, cursor, baseDepth + 1, obj, options);
             } else {
                 break;
             }
