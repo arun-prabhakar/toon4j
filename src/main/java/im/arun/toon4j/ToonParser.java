@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static im.arun.toon4j.Constants.*;
+import static im.arun.toon4j.core.Constants.*;
 
 /**
  * Parser for TOON syntax elements (array headers, primitives, keys, values).
@@ -208,10 +208,34 @@ final class ToonParser {
     /**
      * Parse an array header line.
      * Format: key[N]{fields}: or [N]: or key[N]:
+     * Also supports quoted keys: "x-codeSamples"[N]{fields}:
      */
     static ArrayHeader parseArrayHeader(String line) {
-        // Find bracket segment [N] or [N\t] or [N|]
-        int bracketStart = line.indexOf('[');
+        String trimmed = line.trim();
+
+        // Find the bracket segment, accounting for quoted keys that may contain brackets
+        int bracketStart = -1;
+
+        // For quoted keys, find bracket after closing quote (not inside the quoted string)
+        if (trimmed.startsWith(DOUBLE_QUOTE)) {
+            int closingQuoteIndex = findClosingQuote(trimmed, 0);
+            if (closingQuoteIndex == -1) {
+                return null;
+            }
+
+            // Check if bracket comes after the closing quote
+            if (closingQuoteIndex + 1 < trimmed.length() && trimmed.charAt(closingQuoteIndex + 1) == '[') {
+                // Calculate position in original line
+                int leadingWhitespace = line.length() - trimmed.length();
+                bracketStart = line.indexOf('[', leadingWhitespace + closingQuoteIndex + 1);
+            } else {
+                return null;
+            }
+        } else {
+            // Unquoted key - find first bracket
+            bracketStart = line.indexOf('[');
+        }
+
         if (bracketStart == -1) {
             return null;
         }
@@ -221,10 +245,14 @@ final class ToonParser {
             return null;
         }
 
-        // Extract key before bracket
-        String key = bracketStart > 0 ? line.substring(0, bracketStart).trim() : null;
-        if (key != null && key.isEmpty()) {
-            key = null;
+        // Extract and parse the key (might be quoted)
+        String key = null;
+        if (bracketStart > 0) {
+            String rawKey = line.substring(0, bracketStart).trim();
+            if (!rawKey.isEmpty()) {
+                // Unescape if quoted
+                key = rawKey.startsWith(DOUBLE_QUOTE) ? parseStringLiteral(rawKey) : rawKey;
+            }
         }
 
         // Parse bracket content
@@ -279,8 +307,23 @@ final class ToonParser {
 
     /**
      * Check if line contains a key-value pair (has unquoted colon).
+     * This now handles quoted keys followed by array/brace syntax.
      */
     static boolean isKeyValueLine(String content) {
+        content = content.trim();
+
+        // For quoted keys, check if colon exists after the closing quote
+        // (may have array/brace syntax between key and colon)
+        if (content.startsWith(DOUBLE_QUOTE)) {
+            int closingQuoteIndex = findClosingQuote(content, 0);
+            if (closingQuoteIndex == -1) {
+                return false;
+            }
+            // Check if colon exists anywhere after quoted key
+            return content.substring(closingQuoteIndex + 1).contains(":");
+        }
+
+        // For unquoted keys, look for first unquoted colon
         return findUnquotedColon(content) != -1;
     }
 

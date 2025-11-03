@@ -1,10 +1,10 @@
-package im.arun.toon4j;
+package im.arun.toon4j.core;
 
 public final class Constants {
     private Constants() {}
 
     public static final String COMMA = ",";
-    public static final String TAB = "\t";
+    public static final String TAB = "	";
     public static final String PIPE = "|";
     public static final String DEFAULT_DELIMITER = COMMA;
 
