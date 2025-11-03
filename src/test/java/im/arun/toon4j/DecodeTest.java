@@ -75,8 +75,8 @@ class DecodeTest {
     @Test
     void testDecodeQuotedKeys() {
         String toon = """
-            "order:id": 123
-            "user name": Ada
+            \"order:id\": 123
+            \"user name\": Ada
             """;
 
         Map<?, ?> result = (Map<?, ?>) Toon.decode(toon);
@@ -307,5 +307,24 @@ class DecodeTest {
         assertEquals(2, tags.size());
         assertEquals("reading", tags.get(0));
         assertEquals("gaming", tags.get(1));
+    }
+
+    @Test
+    void testHandlesEmptyListItem() {
+        String toon = "items[2]:\n  -\n  - name: second";
+        Map<?, ?> result = (Map<?, ?>) Toon.decode(toon);
+        List<?> items = (List<?>) result.get("items");
+
+        assertEquals(2, items.size());
+
+        // Check first item is an empty map
+        Object firstItem = items.get(0);
+        assertTrue(firstItem instanceof Map);
+        assertTrue(((Map<?, ?>) firstItem).isEmpty());
+
+        // Check second item is as expected
+        Object secondItem = items.get(1);
+        assertTrue(secondItem instanceof Map);
+        assertEquals("second", ((Map<?, ?>) secondItem).get("name"));
     }
 }

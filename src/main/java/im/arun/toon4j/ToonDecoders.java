@@ -2,7 +2,7 @@ package im.arun.toon4j;
 
 import java.util.*;
 
-import static im.arun.toon4j.Constants.*;
+import static im.arun.toon4j.core.Constants.*;
 import static im.arun.toon4j.ToonParser.*;
 
 /**
@@ -216,11 +216,11 @@ final class ToonDecoders {
             }
 
             if (line.depth == baseDepth + 1) {
-                // Must start with "- "
-                if (!line.content.startsWith(LIST_ITEM_MARKER)) {
+                // Check for valid list item start
+                boolean isListItem = line.content.startsWith(LIST_ITEM_PREFIX) || line.content.equals(LIST_ITEM_MARKER);
+                if (!isListItem) {
                     throw new IllegalArgumentException(
-                        "Line " + line.lineNumber + ": List item must start with '- '"
-                    );
+                        "Line " + line.lineNumber + ": List item must start with '- ' or be a single '-'");
                 }
 
                 Object item = decodeListItem(cursor, baseDepth + 1, header.delimiter, options);
@@ -233,8 +233,7 @@ final class ToonDecoders {
         // Validate count in strict mode
         if (options.isStrict() && result.size() != header.length) {
             throw new IllegalArgumentException(
-                String.format("Expected %d items, but got %d", header.length, result.size())
-            );
+                String.format("Expected %d items, but got %d", header.length, result.size()));
         }
 
         return result;
@@ -245,7 +244,20 @@ final class ToonDecoders {
      */
     private static Object decodeListItem(LineCursor cursor, int baseDepth, String delimiter, DecodeOptions options) {
         ParsedLine line = cursor.next();
-        String afterHyphen = line.content.substring(LIST_ITEM_MARKER.length());
+        String content = line.content;
+
+        // Case 1: Empty list item "-"
+        if (content.equals(LIST_ITEM_MARKER)) {
+            return new LinkedHashMap<String, Object>();
+        }
+
+        // At this point, it must be "- "
+        String afterHyphen = content.substring(LIST_ITEM_PREFIX.length());
+
+        // Case 2: Empty content after "- ", e.g. "- \n"
+        if (afterHyphen.trim().isEmpty()) {
+            return new LinkedHashMap<String, Object>();
+        }
 
         // Check for nested array header: "- [2]: a,b"
         ArrayHeader arrayHeader = parseArrayHeader(afterHyphen);

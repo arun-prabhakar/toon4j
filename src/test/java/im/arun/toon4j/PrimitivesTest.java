@@ -1,5 +1,6 @@
 package im.arun.toon4j;
 
+import im.arun.toon4j.core.Primitives;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 

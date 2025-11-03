@@ -1,8 +1,11 @@
 package im.arun.toon4j;
 
+import im.arun.toon4j.core.Constants;
+import im.arun.toon4j.core.Primitives;
+
 import java.util.*;
 
-import static im.arun.toon4j.Constants.LIST_ITEM_PREFIX;
+import static im.arun.toon4j.core.Constants.LIST_ITEM_PREFIX;
 
 @SuppressWarnings("unchecked")
 public final class Encoders {

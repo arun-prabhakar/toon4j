@@ -1,9 +1,9 @@
-package im.arun.toon4j;
+package im.arun.toon4j.core;
 
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static im.arun.toon4j.Constants.*;
+import static im.arun.toon4j.core.Constants.*;
 
 public final class Primitives {
     private Primitives() {}

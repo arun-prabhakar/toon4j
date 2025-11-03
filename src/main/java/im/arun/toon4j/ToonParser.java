@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static im.arun.toon4j.Constants.*;
+import static im.arun.toon4j.core.Constants.*;
 
 /**
  * Parser for TOON syntax elements (array headers, primitives, keys, values).

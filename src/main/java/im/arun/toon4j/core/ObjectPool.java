@@ -1,4 +1,4 @@
-package im.arun.toon4j;
+package im.arun.toon4j.core;
 
 import java.util.ArrayList;
 import java.util.List;

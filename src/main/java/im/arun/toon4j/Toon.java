@@ -1,5 +1,7 @@
 package im.arun.toon4j;
 
+import im.arun.toon4j.core.Constants;
+
 /**
  * Token-Oriented Object Notation (TOON) encoder and decoder for Java.
  *
