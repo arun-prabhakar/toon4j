@@ -31,10 +31,10 @@ class ScannerTest {
 
         assertEquals(1, result.size());
         ParsedLine line = result.get(0);
-        assertEquals(0, line.depth());
-        assertEquals(0, line.indent());
-        assertEquals("name: Ada", line.content());
-        assertEquals(1, line.lineNumber());
+        assertEquals(0, line.depth);
+        assertEquals(0, line.indent);
+        assertEquals("name: Ada", line.content);
+        assertEquals(1, line.lineNumber);
     }
 
     @Test
@@ -43,9 +43,9 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(3, result.size());
-        assertEquals("name: Ada", result.get(0).content());
-        assertEquals("age: 25", result.get(1).content());
-        assertEquals("city: London", result.get(2).content());
+        assertEquals("name: Ada", result.get(0).content);
+        assertEquals("age: 25", result.get(1).content);
+        assertEquals("city: London", result.get(2).content);
     }
 
     @Test
@@ -56,18 +56,18 @@ class ScannerTest {
         assertEquals(3, result.size());
 
         ParsedLine line0 = result.get(0);
-        assertEquals(0, line0.depth());
-        assertEquals("user:", line0.content());
+        assertEquals(0, line0.depth);
+        assertEquals("user:", line0.content);
 
         ParsedLine line1 = result.get(1);
-        assertEquals(1, line1.depth());
-        assertEquals(2, line1.indent());
-        assertEquals("name: Ada", line1.content());
+        assertEquals(1, line1.depth);
+        assertEquals(2, line1.indent);
+        assertEquals("name: Ada", line1.content);
 
         ParsedLine line2 = result.get(2);
-        assertEquals(1, line2.depth());
-        assertEquals(2, line2.indent());
-        assertEquals("age: 25", line2.content());
+        assertEquals(1, line2.depth);
+        assertEquals(2, line2.indent);
+        assertEquals("age: 25", line2.content);
     }
 
     @Test
@@ -76,10 +76,10 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(4, result.size());
-        assertEquals(0, result.get(0).depth());
-        assertEquals(1, result.get(1).depth());
-        assertEquals(2, result.get(2).depth());
-        assertEquals(3, result.get(3).depth());
+        assertEquals(0, result.get(0).depth);
+        assertEquals(1, result.get(1).depth);
+        assertEquals(2, result.get(2).depth);
+        assertEquals(3, result.get(3).depth);
     }
 
     @Test
@@ -88,9 +88,9 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(3, result.size());
-        assertEquals("line1", result.get(0).content());
-        assertEquals("line2", result.get(1).content());
-        assertEquals("line3", result.get(2).content());
+        assertEquals("line1", result.get(0).content);
+        assertEquals("line2", result.get(1).content);
+        assertEquals("line3", result.get(2).content);
     }
 
     @Test
@@ -99,9 +99,9 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(3, result.size());
-        assertEquals(1, result.get(0).lineNumber());
-        assertEquals(3, result.get(1).lineNumber()); // Line 2 was blank
-        assertEquals(4, result.get(2).lineNumber());
+        assertEquals(1, result.get(0).lineNumber);
+        assertEquals(3, result.get(1).lineNumber); // Line 2 was blank
+        assertEquals(4, result.get(2).lineNumber);
     }
 
     @Test
@@ -110,9 +110,9 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, true);
 
         assertEquals(3, result.size());
-        assertEquals(0, result.get(0).depth());
-        assertEquals(1, result.get(1).depth());
-        assertEquals(2, result.get(2).depth());
+        assertEquals(0, result.get(0).depth);
+        assertEquals(1, result.get(1).depth);
+        assertEquals(2, result.get(2).depth);
     }
 
     @Test
@@ -135,7 +135,7 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(2, result.size());
-        assertEquals(1, result.get(1).depth()); // 3 / 2 = 1
+        assertEquals(1, result.get(1).depth); // 3 / 2 = 1
     }
 
     @Test
@@ -159,9 +159,9 @@ class ScannerTest {
 
         assertEquals(2, result.size());
         ParsedLine child = result.get(1);
-        assertEquals(2, child.depth()); // 4 spaces / 2 = depth 2
-        assertEquals(4, child.indent());
-        assertEquals("child: value", child.content());
+        assertEquals(2, child.depth); // 4 spaces / 2 = depth 2
+        assertEquals(4, child.indent);
+        assertEquals("child: value", child.content);
     }
 
     @Test
@@ -171,8 +171,8 @@ class ScannerTest {
 
         assertEquals(2, result.size());
         ParsedLine child = result.get(1);
-        assertEquals(3, child.depth()); // 6 / 2 = 3
-        assertEquals(6, child.indent());
+        assertEquals(3, child.depth); // 6 / 2 = 3
+        assertEquals(6, child.indent);
     }
 
     @Test
@@ -181,9 +181,9 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(3, result.size());
-        assertEquals("line1", result.get(0).content());
-        assertEquals("line2", result.get(1).content());
-        assertEquals("line3", result.get(2).content());
+        assertEquals("line1", result.get(0).content);
+        assertEquals("line2", result.get(1).content);
+        assertEquals("line3", result.get(2).content);
     }
 
     @Test
@@ -192,9 +192,9 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 4, false);
 
         assertEquals(3, result.size());
-        assertEquals(0, result.get(0).depth());
-        assertEquals(1, result.get(1).depth());
-        assertEquals(2, result.get(2).depth());
+        assertEquals(0, result.get(0).depth);
+        assertEquals(1, result.get(1).depth);
+        assertEquals(2, result.get(2).depth);
     }
 
     @Test
@@ -204,8 +204,8 @@ class ScannerTest {
 
         assertEquals(1, result.size());
         ParsedLine line = result.get(0);
-        assertEquals("  name: Ada", line.raw()); // Raw preserves indentation
-        assertEquals("name: Ada", line.content()); // Content strips it
+        assertEquals("  name: Ada", line.raw); // Raw preserves indentation
+        assertEquals("name: Ada", line.content); // Content strips it
     }
 
     @Test
@@ -214,8 +214,8 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         for (ParsedLine line : result) {
-            assertEquals(0, line.depth());
-            assertEquals(0, line.indent());
+            assertEquals(0, line.depth);
+            assertEquals(0, line.indent);
         }
     }
 
@@ -235,7 +235,7 @@ class ScannerTest {
         assertEquals(11, result.size());
 
         for (int i = 0; i <= 10; i++) {
-            assertEquals(i, result.get(i).depth());
+            assertEquals(i, result.get(i).depth);
         }
     }
 
@@ -245,9 +245,9 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, true);
 
         assertEquals(3, result.size());
-        assertEquals(0, result.get(0).depth());
-        assertEquals(1, result.get(1).depth());
-        assertEquals(1, result.get(2).depth());
+        assertEquals(0, result.get(0).depth);
+        assertEquals(1, result.get(1).depth);
+        assertEquals(1, result.get(2).depth);
     }
 
     @Test
@@ -257,8 +257,8 @@ class ScannerTest {
 
         assertEquals(2, result.size());
         // Content includes trailing whitespace (Scanner doesn't trim)
-        assertEquals("name: Ada   ", result.get(0).content());
-        assertEquals("age: 25  ", result.get(1).content());
+        assertEquals("name: Ada   ", result.get(0).content);
+        assertEquals("age: 25  ", result.get(1).content);
     }
 
     @Test
@@ -274,8 +274,8 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(2, result.size());
-        assertEquals("line1", result.get(0).content());
-        assertEquals("line2", result.get(1).content());
+        assertEquals("line1", result.get(0).content);
+        assertEquals("line2", result.get(1).content);
     }
 
     @Test
@@ -291,9 +291,9 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 1, false);
 
         assertEquals(3, result.size());
-        assertEquals(0, result.get(0).depth());
-        assertEquals(1, result.get(1).depth());
-        assertEquals(2, result.get(2).depth());
+        assertEquals(0, result.get(0).depth);
+        assertEquals(1, result.get(1).depth);
+        assertEquals(2, result.get(2).depth);
     }
 
     @Test
@@ -311,10 +311,10 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(7, result.size());
-        assertEquals("user:", result.get(0).content());
-        assertEquals(0, result.get(0).depth());
-        assertEquals("id: 123", result.get(1).content());
-        assertEquals(1, result.get(1).depth());
+        assertEquals("user:", result.get(0).content);
+        assertEquals(0, result.get(0).depth);
+        assertEquals("id: 123", result.get(1).content);
+        assertEquals(1, result.get(1).depth);
     }
 
     @Test
@@ -323,7 +323,7 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(1, result.size());
-        assertEquals(3, result.get(0).lineNumber()); // First non-blank is line 3
+        assertEquals(3, result.get(0).lineNumber); // First non-blank is line 3
     }
 
     @Test
@@ -332,7 +332,7 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(1, result.size());
-        assertEquals("name: Ada", result.get(0).content());
+        assertEquals("name: Ada", result.get(0).content);
     }
 
     @Test
@@ -341,7 +341,7 @@ class ScannerTest {
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(1, result.size());
-        assertEquals("note: \"hello: world, [test]\"", result.get(0).content());
+        assertEquals("note: \"hello: world, [test]\"", result.get(0).content);
     }
 
     @Test
@@ -351,7 +351,7 @@ class ScannerTest {
 
         assertEquals(2, result.size());
         ParsedLine child = result.get(1);
-        assertEquals(6, child.depth()); // 12 / 2 = 6
-        assertEquals(12, child.indent());
+        assertEquals(6, child.depth); // 12 / 2 = 6
+        assertEquals(12, child.indent);
     }
 }

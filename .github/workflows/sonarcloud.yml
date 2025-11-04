@@ -45,8 +45,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-            -Dsonar.projectKey=toon4j \
-            -Dsonar.organization=your-organization \
+            -Dsonar.projectKey=im.arun.toon4j \
+            -Dsonar.organization=arun-prabhakar \
             -Dsonar.host.url=https://sonarcloud.io
 
       - name: SonarQube Quality Gate check
