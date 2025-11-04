@@ -1,6 +1,8 @@
 package im.arun.toon4j;
 
 import org.junit.jupiter.api.Test;
+
+import java.net.MalformedURLException;
 import java.util.Map;
 import java.util.List;
 
@@ -133,7 +135,7 @@ class ReflectionConverterTest {
     }
 
     @Test
-    void testIsPojoJavaStdLib() {
+    void testIsPojoJavaStdLib() throws MalformedURLException {
         assertFalse(ReflectionConverter.isPojo(new java.io.File("test")));
         assertFalse(ReflectionConverter.isPojo(new java.net.URL("http://example.com")));
     }
