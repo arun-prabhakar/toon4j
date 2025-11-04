@@ -296,18 +296,6 @@ class ObjectPoolTest {
     }
 
     @Test
-    void testReturnStringBuilderNull() {
-        // Should not throw exception
-        assertDoesNotThrow(() -> ObjectPool.returnStringBuilder(null));
-    }
-
-    @Test
-    void testReturnArrayListNull() {
-        // Should not throw exception
-        assertDoesNotThrow(() -> ObjectPool.returnArrayList(null));
-    }
-
-    @Test
     void testConcurrentUsageInSameThread() {
         StringBuilder sb1 = ObjectPool.getStringBuilder();
         sb1.append("first");

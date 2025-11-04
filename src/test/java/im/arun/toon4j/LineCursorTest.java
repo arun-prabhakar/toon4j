@@ -170,7 +170,11 @@ class LineCursorTest {
         cursor.advance(); // Move to position 1
 
         // Peek backwards (negative offset)
-        assertNull(cursor.peekAt(-1));
+        ParsedLine backwards = cursor.peekAt(-1);
+        assertNotNull(backwards);
+        assertEquals("line1", backwards.content); // position 1 + offset -1 = position 0
+
+        assertNull(cursor.peekAt(-2)); // position 1 + offset -2 = -1 (out of bounds)
         assertNull(cursor.peekAt(-10));
     }
 

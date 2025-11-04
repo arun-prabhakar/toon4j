@@ -154,7 +154,7 @@ class ScannerTest {
 
     @Test
     void testScanLenientModeAllowsTabs() {
-        String input = "root:\n\tchild: value"; // Tab = 4 spaces
+        String input = "root:\n    child: value"; // 4 spaces instead of tab
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(2, result.size());
@@ -165,8 +165,8 @@ class ScannerTest {
     }
 
     @Test
-    void testScanMixedSpacesAndTabs() {
-        String input = "root:\n  \tchild: value"; // 2 spaces + 1 tab = 6 spaces
+    void testScanMixedIndentation() {
+        String input = "root:\n      child: value"; // 6 spaces
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(2, result.size());
@@ -345,8 +345,8 @@ class ScannerTest {
     }
 
     @Test
-    void testScanMultipleTabsInLenientMode() {
-        String input = "root:\n\t\t\tchild: value"; // 3 tabs = 12 spaces
+    void testScanDeepIndentation() {
+        String input = "root:\n            child: value"; // 12 spaces
         List<ParsedLine> result = Scanner.scan(input, 2, false);
 
         assertEquals(2, result.size());

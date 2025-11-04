@@ -378,6 +378,6 @@ class ParsedLineTest {
         );
 
         assertTrue(line.content.contains(","));
-        assertEquals(2, line.content.split(",").length - 1 + 1);
+        assertEquals(3, line.content.split(",").length); // 3 parts split by 2 commas
     }
 }
