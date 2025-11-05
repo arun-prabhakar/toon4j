@@ -1,5 +1,8 @@
 ![TOON logo with step‑by‑step guide](./.github/og.png)
-# TOON4J
+# TOON4J ![GitHub License](https://img.shields.io/github/license/arun-prabhakar/toon4j)
+
+
+[![codecov](https://codecov.io/github/arun-prabhakar/toon4j/graph/badge.svg?token=JBNBPYI95S)](https://codecov.io/github/arun-prabhakar/toon4j) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=im.arun.toon4j&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=im.arun.toon4j)  [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=im.arun.toon4j&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=im.arun.toon4j) 
 
 **High-performance, zero-dependency TOON encoder and decoder for Java.**
 
@@ -13,6 +16,7 @@ This library, TOON4J, delivers **production-grade performance** (~5ms for 256KB)
 
 - [Quick Start](#quick-start)
 - [Installation](#installation)
+- [Examples](#examples)
 - [Why TOON4J?](#why-toon4j)
 - [Key Features](#key-features)
 - [Usage Examples](#usage-examples)
@@ -93,6 +97,25 @@ Object data = Toon.decode(toon);
 ```gradle
 implementation 'im.arun:toon4j:1.0.0'
 ```
+
+## Examples
+
+Looking for comprehensive examples? Check out the **[toon4j-example](https://github.com/arun-prabhakar/toon4j-example)** project with runnable examples:
+
+- **[EncoderExample.java](https://github.com/arun-prabhakar/toon4j-example/blob/main/src/main/java/im/arun/toon4j/example/EncoderExample.java)** - 9 encoding examples (primitives, objects, arrays, custom options, delimiters)
+- **[DecoderExample.java](https://github.com/arun-prabhakar/toon4j-example/blob/main/src/main/java/im/arun/toon4j/example/DecoderExample.java)** - 9 decoding examples (primitives, objects, arrays, error handling, round-trip)
+- **[AdvancedExample.java](https://github.com/arun-prabhakar/toon4j-example/blob/main/src/main/java/im/arun/toon4j/example/AdvancedExample.java)** - 5 advanced examples (LLM optimization, token savings, large datasets)
+- **[PojoExample.java](https://github.com/arun-prabhakar/toon4j-example/blob/main/src/main/java/im/arun/toon4j/example/PojoExample.java)** - 7 POJO examples (serialization, deserialization, nested objects, records, enums)
+
+Run any example:
+```bash
+git clone https://github.com/arun-prabhakar/toon4j-example.git
+cd toon4j-example
+mvn clean compile
+mvn exec:java -Dexec.mainClass="im.arun.toon4j.example.EncoderExample"
+```
+
+See the **[Example README](https://github.com/arun-prabhakar/toon4j-example/README.md)** for complete documentation.
 
 ## Why TOON4J?
 
@@ -249,6 +272,107 @@ List<?> items = (List<?>) result.get("items");
 // items.size() == 2 (lenient mode accepts it)
 ```
 
+### POJO Deserialization (Automatic Type Conversion)
+
+toon4j now supports automatic deserialization to POJOs, eliminating manual type casting:
+
+```java
+public class User {
+    private int id;
+    private String name;
+    private String email;
+    private boolean active;
+
+    // Getters and setters...
+}
+
+String toon = """
+    id: 123
+    name: Ada
+    email: ada@example.com
+    active: true
+    """;
+
+// Deserialize directly to POJO
+User user = Toon.decode(toon, User.class);
+
+System.out.println(user.getName());  // "Ada"
+System.out.println(user.getId());    // 123
+```
+
+**Supports:**
+- ✅ **JavaBeans** (with setters)
+- ✅ **Public fields**
+- ✅ **Java Records** (Java 17+)
+- ✅ **Nested POJOs**
+- ✅ **Collections with generics** (`List<Employee>`, `Set<String>`)
+- ✅ **Arrays** (primitive and object arrays)
+- ✅ **Enums**
+- ✅ **Numeric type conversions** (Integer → Long, etc.)
+
+**Nested POJOs:**
+
+```java
+public class Address {
+    private String street;
+    private String city;
+    // Getters/setters...
+}
+
+public class Employee {
+    private int id;
+    private String name;
+    private Address address;
+    // Getters/setters...
+}
+
+String toon = """
+    id: 456
+    name: Bob
+    address:
+      street: 123 Main St
+      city: Boston
+    """;
+
+Employee employee = Toon.decode(toon, Employee.class);
+System.out.println(employee.getAddress().getCity());  // "Boston"
+```
+
+**Collections with Generic Types:**
+
+```java
+public class Department {
+    private String name;
+    private List<Employee> employees;  // Automatically converts List<Map> to List<Employee>
+    // Getters/setters...
+}
+
+String toon = """
+    name: Engineering
+    employees[2]{id,name}:
+      1,Alice
+      2,Bob
+    """;
+
+Department dept = Toon.decode(toon, Department.class);
+System.out.println(dept.getEmployees().get(0).getName());  // "Alice"
+```
+
+**Java Records:**
+
+```java
+public record Person(String name, int age, String city) {}
+
+String toon = """
+    name: Charlie
+    age: 30
+    city: Seattle
+    """;
+
+Person person = Toon.decode(toon, Person.class);
+System.out.println(person.name());  // "Charlie"
+```
+
 ## Using TOON in LLM Prompts
 
 TOON works best when you show the format instead of describing it. The structure is self-documenting – models parse it naturally once they see the pattern.
@@ -354,7 +478,48 @@ TOON4J v1.0.0 delivers **production-grade performance** optimized for real-world
 
 ## API Reference
 
-(For brevity, the detailed API, Type Conversion, and other sections are omitted but would follow here)
+### Encoding
+
+```java
+// Encode with default options
+String toon = Toon.encode(Object value);
+
+// Encode with custom options
+String toon = Toon.encode(Object value, EncodeOptions options);
+```
+
+**EncodeOptions:**
+```java
+EncodeOptions options = EncodeOptions.builder()
+    .indent(4)                          // 4-space indentation (default: 2)
+    .delimiter(Delimiter.PIPE)          // Use pipe delimiter (default: COMMA)
+    .lengthMarker(true)                 // Add # to array lengths (default: false)
+    .build();
+
+// Presets
+EncodeOptions.compact()   // Minimal output
+EncodeOptions.verbose()   // Maximum readability
+```
+
+### Decoding
+
+```java
+// Decode to Map/List/primitive
+Object data = Toon.decode(String input);
+Object data = Toon.decode(String input, DecodeOptions options);
+
+// Decode to POJO (automatic deserialization)
+User user = Toon.decode(String input, Class<User> targetClass);
+User user = Toon.decode(String input, Class<User> targetClass, DecodeOptions options);
+```
+
+**DecodeOptions:**
+```java
+DecodeOptions options = DecodeOptions.lenient();      // Lenient mode with 2-space indent
+DecodeOptions options = DecodeOptions.lenient(4);     // Lenient mode with 4-space indent
+DecodeOptions options = DecodeOptions.strict();       // Strict mode (default)
+DecodeOptions options = DecodeOptions.strict(4);      // Strict mode with 4-space indent
+```
 
 ## Building from Source
 
@@ -394,3 +559,5 @@ For the complete TOON specification, see [SPEC.md](https://github.com/johannscho
 ## License
 
 MIT License - see the [original TOON repository](https://github.com/johannschopplich/toon) for details.
+
+[![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=im.arun.toon4j)](https://sonarcloud.io/summary/new_code?id=im.arun.toon4j) [![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-highlight.svg)](https://sonarcloud.io/summary/new_code?id=im.arun.toon4j)
