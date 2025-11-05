@@ -84,11 +84,13 @@ Object data = Toon.decode(toon);
 
 ### Maven
 
+![Maven Central Version](https://img.shields.io/maven-central/v/im.arun/toon4j)
+
 ```xml
 <dependency>
     <groupId>im.arun</groupId>
     <artifactId>toon4j</artifactId>
-    <version>1.0.0</n>
+    <version>latest</version>
 </dependency>
 ```
 

@@ -38,7 +38,7 @@ final class ObjectPool {
      * Return a StringBuilder to the pool (for clarity, but not strictly necessary with ThreadLocal).
      */
     static void returnStringBuilder(StringBuilder sb) {
-        if (sb.length() > 4096) {
+        if (sb != null && sb.length() > 4096) {
             // If too large, discard and create a new one
             stringBuilderPool.set(new StringBuilder(512));
         }
@@ -49,10 +49,20 @@ final class ObjectPool {
      * Return an ArrayList to the pool (for clarity, but not strictly necessary with ThreadLocal).
      */
     static void returnArrayList(List<Object> list) {
-        if (list.size() > 256) {
+        if (list != null && list.size() > 256) {
             // If too large, discard and create a new one
             arrayListPool.set(new ArrayList<>(32));
         }
         // Otherwise, it stays in ThreadLocal for reuse
+    }
+
+    /**
+     * Clean up ThreadLocal resources to prevent memory leaks.
+     * Should be called when the thread is done using pooled objects,
+     * especially in managed thread pools or application servers.
+     */
+    static void cleanup() {
+        stringBuilderPool.remove();
+        arrayListPool.remove();
     }
 }
