@@ -114,4 +114,58 @@ public final class Toon {
         LineCursor cursor = new LineCursor(lines);
         return ToonDecoders.decodeValue(cursor, options);
     }
+
+    /**
+     * Decode TOON format string to a POJO of the specified type with default options.
+     *
+     * @param input TOON-formatted string
+     * @param targetClass the target POJO class
+     * @param <T> the type of the POJO
+     * @return deserialized POJO instance
+     * @throws IllegalArgumentException if input is invalid or empty
+     * @throws RuntimeException if deserialization fails
+     */
+    public static <T> T decode(String input, Class<T> targetClass) {
+        return decode(input, targetClass, new DecodeOptions());
+    }
+
+    /**
+     * Decode TOON format string to a POJO of the specified type with custom options.
+     *
+     * @param input TOON-formatted string
+     * @param targetClass the target POJO class
+     * @param options decoding options (indent size, strict validation)
+     * @param <T> the type of the POJO
+     * @return deserialized POJO instance
+     * @throws IllegalArgumentException if input is invalid or empty
+     * @throws RuntimeException if deserialization fails
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T decode(String input, Class<T> targetClass, DecodeOptions options) {
+        if (targetClass == null) {
+            throw new IllegalArgumentException("Target class cannot be null");
+        }
+
+        // First decode to Map/List/primitive
+        Object decoded = decode(input, options);
+
+        // If target is Object.class or the decoded type matches, return as-is
+        if (targetClass == Object.class || targetClass.isInstance(decoded)) {
+            return (T) decoded;
+        }
+
+        // If decoded is a Map, deserialize to POJO
+        if (decoded instanceof java.util.Map) {
+            return PojoDeserializer.fromMap((java.util.Map<String, Object>) decoded, targetClass);
+        }
+
+        // If decoded is a List and target is an array, convert
+        if (decoded instanceof java.util.List && targetClass.isArray()) {
+            java.util.List<?> list = (java.util.List<?>) decoded;
+            return (T) PojoDeserializer.deserializeValue(list, targetClass);
+        }
+
+        // For primitives or direct assignment
+        return (T) PojoDeserializer.deserializeValue(decoded, targetClass);
+    }
 }
