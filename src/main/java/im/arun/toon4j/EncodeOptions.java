@@ -6,21 +6,27 @@ package im.arun.toon4j;
  * Provides both builder pattern and convenient factory methods for common configurations.
  */
 public class EncodeOptions {
-    /** Default encoding options: 2 spaces indent, comma delimiter, no length marker */
+    /** Default encoding options: 2 spaces indent, comma delimiter, key folding off */
     public static final EncodeOptions DEFAULT = new EncodeOptions();
 
     private final int indent;
     private final Delimiter delimiter;
-    private final boolean lengthMarker;
+    private final KeyFolding keyFolding;
+    private final boolean flatten;
+    private final int flattenDepth;
+    private final EncodeReplacer replacer;
 
     public EncodeOptions() {
-        this(2, Delimiter.COMMA, false);
+        this(2, Delimiter.COMMA, KeyFolding.OFF, false, Integer.MAX_VALUE, null);
     }
 
-    public EncodeOptions(int indent, Delimiter delimiter, boolean lengthMarker) {
+    public EncodeOptions(int indent, Delimiter delimiter, KeyFolding keyFolding, boolean flatten, int flattenDepth, EncodeReplacer replacer) {
         this.indent = indent;
         this.delimiter = delimiter;
-        this.lengthMarker = lengthMarker;
+        this.keyFolding = keyFolding;
+        this.flatten = flatten;
+        this.flattenDepth = flattenDepth;
+        this.replacer = replacer;
     }
 
     public int getIndent() {
@@ -35,8 +41,20 @@ public class EncodeOptions {
         return delimiter.getValue();
     }
 
-    public boolean hasLengthMarker() {
-        return lengthMarker;
+    public KeyFolding getKeyFolding() {
+        return keyFolding;
+    }
+
+    public boolean isFlatten() {
+        return flatten;
+    }
+
+    public int getFlattenDepth() {
+        return flattenDepth;
+    }
+
+    public EncodeReplacer getReplacer() {
+        return replacer;
     }
 
     // Factory methods for common configurations
@@ -48,7 +66,7 @@ public class EncodeOptions {
      * @return new EncodeOptions with specified indent
      */
     public static EncodeOptions withIndent(int indent) {
-        return new EncodeOptions(indent, Delimiter.COMMA, false);
+        return new EncodeOptions(indent, Delimiter.COMMA, KeyFolding.OFF, false, Integer.MAX_VALUE, null);
     }
 
     /**
@@ -58,16 +76,7 @@ public class EncodeOptions {
      * @return new EncodeOptions with specified delimiter
      */
     public static EncodeOptions withDelimiter(Delimiter delimiter) {
-        return new EncodeOptions(2, delimiter, false);
-    }
-
-    /**
-     * Creates options with length marker enabled, using defaults for other settings.
-     *
-     * @return new EncodeOptions with length marker enabled
-     */
-    public static EncodeOptions withLengthMarker() {
-        return new EncodeOptions(2, Delimiter.COMMA, true);
+        return new EncodeOptions(2, delimiter, KeyFolding.OFF, false, Integer.MAX_VALUE, null);
     }
 
     /**
@@ -76,16 +85,16 @@ public class EncodeOptions {
      * @return new EncodeOptions with tab delimiter
      */
     public static EncodeOptions compact() {
-        return new EncodeOptions(2, Delimiter.TAB, false);
+        return new EncodeOptions(2, Delimiter.TAB, KeyFolding.OFF, false, Integer.MAX_VALUE, null);
     }
 
     /**
-     * Creates options with tab delimiter and length marker for maximum clarity.
+     * Creates options with tab delimiter and safe key folding.
      *
-     * @return new EncodeOptions with tab delimiter and length marker
+     * @return new EncodeOptions with tab delimiter and safe folding
      */
     public static EncodeOptions verbose() {
-        return new EncodeOptions(2, Delimiter.TAB, true);
+        return new EncodeOptions(2, Delimiter.TAB, KeyFolding.SAFE, false, Integer.MAX_VALUE, null);
     }
 
     /**
@@ -103,7 +112,10 @@ public class EncodeOptions {
     public static class Builder {
         private int indent = 2;
         private Delimiter delimiter = Delimiter.COMMA;
-        private boolean lengthMarker = false;
+        private KeyFolding keyFolding = KeyFolding.OFF;
+        private boolean flatten = false;
+        private int flattenDepth = Integer.MAX_VALUE;
+        private EncodeReplacer replacer;
 
         /**
          * Sets the number of spaces per indentation level.
@@ -128,23 +140,44 @@ public class EncodeOptions {
         }
 
         /**
-         * Sets whether to include length marker (#) in array headers.
-         *
-         * @param lengthMarker true to include # prefix
-         * @return this builder
-         */
-        public Builder lengthMarker(boolean lengthMarker) {
-            this.lengthMarker = lengthMarker;
-            return this;
-        }
-
-        /**
          * Builds the EncodeOptions with current configuration.
          *
          * @return new EncodeOptions instance
          */
         public EncodeOptions build() {
-            return new EncodeOptions(indent, delimiter, lengthMarker);
+            return new EncodeOptions(indent, delimiter, keyFolding, flatten, flattenDepth, replacer);
+        }
+
+        /**
+         * Enables safe key folding.
+         */
+        public Builder keyFolding(KeyFolding keyFolding) {
+            this.keyFolding = keyFolding;
+            return this;
+        }
+
+        /**
+         * Enables aggressive flattening of single-key chains (paired with depth budget).
+         */
+        public Builder flatten(boolean flatten) {
+            this.flatten = flatten;
+            return this;
+        }
+
+        /**
+         * Limits how deep folding can traverse single-key chains.
+         */
+        public Builder flattenDepth(int flattenDepth) {
+            this.flattenDepth = flattenDepth;
+            return this;
+        }
+
+        /**
+         * Sets a replacer to transform or filter values.
+         */
+        public Builder replacer(EncodeReplacer replacer) {
+            this.replacer = replacer;
+            return this;
         }
     }
 }

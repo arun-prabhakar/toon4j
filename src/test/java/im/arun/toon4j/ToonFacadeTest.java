@@ -261,12 +261,11 @@ class ToonFacadeTest {
     void testRoundTripWithLengthMarker() {
         List<String> original = List.of("a", "b", "c");
 
-        EncodeOptions options = EncodeOptions.builder()
-            .lengthMarker(true)
-            .build();
+        EncodeOptions options = EncodeOptions.builder().build();
 
         String encoded = Toon.encode(original, options);
-        assertTrue(encoded.contains("[#3]:"));
+        assertTrue(encoded.contains("[3]:"));
+        assertFalse(encoded.contains("#"));
 
         Object decoded = Toon.decode(encoded);
         assertTrue(decoded instanceof List);

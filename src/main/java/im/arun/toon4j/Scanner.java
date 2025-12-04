@@ -22,11 +22,22 @@ final class Scanner {
         }
 
         String[] lines = source.split("\\r?\\n", -1);
-        List<ParsedLine> result = new ArrayList<>(lines.length);
+        return scanLines(java.util.Arrays.asList(lines), indentSize, strict);
+    }
 
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i];
-            int lineNumber = i + 1;
+    /**
+     * Parse pre-split lines into parsed lines with depth information.
+     * @param lines Iterable of TOON lines (without trailing newlines)
+     * @param indentSize Number of spaces per indentation level
+     * @param strict Enable strict validation (no tabs, exact indent multiples)
+     * @return List of parsed lines (excluding blank lines)
+     */
+    static List<ParsedLine> scanLines(Iterable<String> lines, int indentSize, boolean strict) {
+        List<ParsedLine> result = new ArrayList<>();
+        int lineNumber = 0;
+
+        for (String line : lines) {
+            lineNumber++;
 
             // Skip blank lines
             if (line.trim().isEmpty()) {

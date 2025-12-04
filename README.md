@@ -1,4 +1,4 @@
-![TOON logo with step‑by‑step guide](./.github/og.png)
+﻿![TOON logo with step‑by‑step guide](./.github/og.png)
 # TOON4J ![GitHub License](https://img.shields.io/github/license/arun-prabhakar/toon4j)
 
 
@@ -97,14 +97,14 @@ Object data = Toon.decode(toon);
 ### Gradle
 
 ```gradle
-implementation 'im.arun:toon4j:1.0.0'
+implementation 'im.arun:toon4j:1.1.0'
 ```
 
 ## Examples
 
 Looking for comprehensive examples? Check out the **[toon4j-example](https://github.com/arun-prabhakar/toon4j-example)** project with runnable examples:
 
-- **[EncoderExample.java](https://github.com/arun-prabhakar/toon4j-example/blob/main/src/main/java/im/arun/toon4j/example/EncoderExample.java)** - 9 encoding examples (primitives, objects, arrays, custom options, delimiters)
+- **[EncoderExample.java](https://github.com/arun-prabhakar/toon4j-example/blob/main/src/main/java/im/arun/toon4j/example/EncoderExample.java)** - 11 encoding examples (primitives, objects, arrays, custom options, delimiters, key folding, replacers, `encodeLines`)
 - **[DecoderExample.java](https://github.com/arun-prabhakar/toon4j-example/blob/main/src/main/java/im/arun/toon4j/example/DecoderExample.java)** - 9 decoding examples (primitives, objects, arrays, error handling, round-trip)
 - **[AdvancedExample.java](https://github.com/arun-prabhakar/toon4j-example/blob/main/src/main/java/im/arun/toon4j/example/AdvancedExample.java)** - 5 advanced examples (LLM optimization, token savings, large datasets)
 - **[PojoExample.java](https://github.com/arun-prabhakar/toon4j-example/blob/main/src/main/java/im/arun/toon4j/example/PojoExample.java)** - 7 POJO examples (serialization, deserialization, nested objects, records, enums)
@@ -169,17 +169,18 @@ TOON4J uniquely combines **encoding efficiency** with **runtime performance**:
 
 ## Key Features
 
-- 💸 **Token-efficient:** typically 30–60% fewer tokens than JSON
-- ⚡ **High performance:** 4.9ms for 256KB, 9.4ms for 1MB, linear scaling with data size
-- 🤿 **LLM-friendly guardrails:** explicit lengths and field lists help models validate output
-- 🍱 **Minimal syntax:** removes redundant punctuation (braces, brackets, most quotes)
-- 📐 **Indentation-based structure:** replaces braces with whitespace for better readability
-- 🧺 **Tabular arrays:** declare keys once, then stream rows without repetition
-- 🤖 **Automatic POJO serialization:** works with any Java object out of the box (optimized reflection with cached accessors)
-- 🔄 **Full decode support:** parse TOON back into Java objects with strict/lenient modes
-- 🪶 **Zero dependencies:** no external libraries required - pure Java implementation
-- 📦 **Lightweight:** only ~80KB total
-- ✨ **Comprehensive type support:** Optional, Stream, primitive arrays, and all Java temporal types
+- Token-efficient: typically 30–60% fewer tokens than JSON
+- High performance: 4.9ms for 256KB, 9.4ms for 1MB, linear scaling with data size
+- LLM-friendly guardrails: explicit lengths and field lists help models validate output
+- Minimal syntax: removes redundant punctuation (braces, brackets, most quotes)
+- Indentation-based structure for readability
+- Tabular arrays: declare keys once, then stream rows without repetition
+- Automatic POJO serialization with cached reflection
+- Streaming APIs: encodeLines and streaming decode for memory-efficient pipelines
+- Key folding & path expansion: safely collapse single-key chains and rebuild dotted keys into nested maps
+- Encode replacers: transform or omit values during encode (JSON.stringify-style)
+- Zero dependencies and lightweight (~80KB)
+- Comprehensive type support: Optional, Stream, primitive arrays, and all Java temporal types
 
 ## Usage Examples
 
@@ -256,6 +257,69 @@ Output:
 presentValue: Hello
 emptyValue: null
 numbers[5]: 1,2,3,4,5
+```
+
+### Streaming encode and safe path expansion
+
+Stream TOON lines without buffering, and rebuild dotted keys back into nested objects when decoding.
+
+```java
+import im.arun.toon4j.*;
+
+EncodeOptions encodeOptions = EncodeOptions.builder()
+    .keyFolding(KeyFolding.SAFE)
+    .replacer((key, value, path) -> "secret".equals(key) ? EncodeReplacer.OMIT : value)
+    .build();
+
+for (String line : Toon.encodeLines(data, encodeOptions)) {
+    System.out.println(line);
+}
+
+DecodeOptions decodeOptions = new DecodeOptions(2, true, PathExpansion.SAFE);
+Object decoded = Toon.decode(String.join("\n", Toon.encodeLines(data, encodeOptions)), decodeOptions);
+```
+
+You can also decode pre-split lines directly:
+
+```java
+List<String> lines = List.of("user:", "  id: 1", "  name: Ada");
+Object decoded = Toon.decodeLines(lines, new DecodeOptions());
+```
+
+### Streaming decode events
+
+Get a stream of structural events (start/end object/array, key, primitive) for custom pipelines.
+
+```java
+List<DecodeEvent> events = Toon.decodeToEvents("""
+  user:
+    id: 1
+    name: Ada
+  """, new DecodeOptions());
+```
+
+### Aggressive flattening (force dotted keys)
+
+Enable `flatten=true` to collapse single-key wrapper chains even when safe key folding is off.
+
+```java
+EncodeOptions options = EncodeOptions.builder()
+    .flatten(true)       // force flatten single-key wrappers
+    .flattenDepth(3)     // limit how deep to flatten
+    .build();
+
+Map<String, Object> payload = Map.of(
+    "meta", Map.of(
+        "info", Map.of(
+            "id", 123,
+            "env", "prod"
+        )
+    )
+);
+
+System.out.println(Toon.encode(payload, options));
+// meta.info.id: 123
+// meta.info.env: prod
 ```
 
 ### Lenient Decoding

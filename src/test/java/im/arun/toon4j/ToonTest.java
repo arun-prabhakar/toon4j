@@ -189,12 +189,10 @@ class ToonTest {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("tags", List.of("reading", "gaming", "coding"));
 
-        EncodeOptions options = EncodeOptions.builder()
-            .lengthMarker(true)
-            .build();
+        EncodeOptions options = EncodeOptions.builder().build();
 
         String result = Toon.encode(data, options);
-        String expected = "tags[#3]: reading,gaming,coding";
+        String expected = "tags[3]: reading,gaming,coding";
 
         assertEquals(expected, result);
     }
@@ -248,6 +246,40 @@ class ToonTest {
         String result = Toon.encode(data);
         assertTrue(result.contains("enabled: true"));
         assertTrue(result.contains("disabled: false"));
+    }
+
+    @Test
+    void testDecodeLinesIterable() {
+        List<String> lines = List.of("user:", "  id: 1", "  name: Ada");
+        Object decoded = Toon.decodeLines(lines, new DecodeOptions());
+        assertTrue(decoded instanceof Map);
+        Map<?, ?> map = (Map<?, ?>) decoded;
+        Map<?, ?> user = (Map<?, ?>) map.get("user");
+        assertNotNull(user);
+        assertEquals(1, user.get("id"));
+        assertEquals("Ada", user.get("name"));
+    }
+
+    @Test
+    void testDecodeToEvents() {
+        String input = "user:\n  id: 1\n  name: Ada";
+        List<DecodeEvent> events = Toon.decodeToEvents(input, new DecodeOptions());
+        assertFalse(events.isEmpty());
+        // Expect: StartObject, Key(user), StartObject, Key(id), Prim(id), Key(name), Prim(name), EndObject, EndObject
+        assertEquals("user", ((DecodeEvent.KeyEvent) events.get(1)).key());
+        assertEquals("id", ((DecodeEvent.KeyEvent) events.get(3)).key());
+        assertEquals(1, ((DecodeEvent.PrimitiveEvent) events.get(4)).value());
+    }
+
+    @Test
+    void testDecodeReplacer() {
+        String input = "user:\n  password: secret\n  name: Ada";
+        DecodeOptions options = new DecodeOptions(2, true, PathExpansion.OFF,
+            (key, value, path) -> "password".equals(key) ? DecodeReplacer.OMIT : value);
+        Object decoded = Toon.decode(input, options);
+        Map<?, ?> map = (Map<?, ?>) ((Map<?, ?>) decoded).get("user");
+        assertFalse(map.containsKey("password"));
+        assertEquals("Ada", map.get("name"));
     }
 
     @Test

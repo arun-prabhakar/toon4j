@@ -1,6 +1,7 @@
 package im.arun.toon4j;
 
 import im.arun.toon4j.core.Constants;
+import im.arun.toon4j.core.KeyFoldingUtil;
 import im.arun.toon4j.core.Primitives;
 
 import java.util.*;
@@ -13,51 +14,118 @@ public final class Encoders {
 
     // Main encode entry point
     public static String encodeValue(Object value, EncodeOptions options) {
+        return String.join("\n", encodeValueLines(value, options));
+    }
+
+    public static List<String> encodeValueLines(Object value, EncodeOptions options) {
         if (Normalize.isJsonPrimitive(value)) {
-            return Primitives.encodePrimitive(value, options.getDelimiterValue());
+            return List.of(Primitives.encodePrimitive(value, options.getDelimiterValue()));
         }
 
         LineWriter writer = new LineWriter(options.getIndent());
 
         if (Normalize.isJsonArray(value)) {
-            encodeArray(null, (List<?>) value, writer, 0, options);
+            encodeArray(null, (List<?>) value, writer, 0, options, null, null);
         } else if (Normalize.isJsonObject(value)) {
-            encodeObject((Map<String, Object>) value, writer, 0, options);
+            Map<String, Object> map = (Map<String, Object>) value;
+            Set<String> rootLiteralKeys = collectLiteralKeys(map);
+            encodeObject(map, writer, 0, options, rootLiteralKeys, null, options.getFlattenDepth());
         }
 
-        return writer.toString();
+        return writer.getLines();
+    }
+
+    // Backwards-compatible overloads
+    public static void encodeObject(Map<String, Object> obj, LineWriter writer, int depth, EncodeOptions options) {
+        Set<String> rootLiteralKeys = collectLiteralKeys(obj);
+        encodeObject(obj, writer, depth, options, rootLiteralKeys, null, options.getFlattenDepth());
+    }
+
+    public static void encodeKeyValuePair(String key, Object value, LineWriter writer, int depth, EncodeOptions options) {
+        encodeKeyValuePair(key, value, writer, depth, options, List.of(), null, null, options.getFlattenDepth(), new HashSet<>());
+    }
+
+    public static void encodeArray(String key, List<?> array, LineWriter writer, int depth, EncodeOptions options) {
+        encodeArray(key, array, writer, depth, options, null, null);
+    }
+
+    private static Set<String> collectLiteralKeys(Map<String, Object> map) {
+        Set<String> result = new HashSet<>();
+        for (String key : map.keySet()) {
+            if (key.contains(".")) {
+                result.add(key);
+            }
+        }
+        return result;
     }
 
     // Encode object
-    public static void encodeObject(Map<String, Object> obj, LineWriter writer, int depth, EncodeOptions options) {
-        for (Map.Entry<String, Object> entry : obj.entrySet()) {
-            encodeKeyValuePair(entry.getKey(), entry.getValue(), writer, depth, options);
+    public static void encodeObject(Map<String, Object> obj, LineWriter writer, int depth, EncodeOptions options,
+                                    Set<String> rootLiteralKeys, String pathPrefix, Integer remainingDepth) {
+        List<String> keys = new ArrayList<>(obj.keySet());
+        Set<String> blockedKeys = new HashSet<>();
+        for (String key : keys) {
+            encodeKeyValuePair(key, obj.get(key), writer, depth, options, keys, rootLiteralKeys, pathPrefix, remainingDepth, blockedKeys);
         }
     }
 
     // Encode key-value pair
-    public static void encodeKeyValuePair(String key, Object value, LineWriter writer, int depth, EncodeOptions options) {
+    @SuppressWarnings("unchecked")
+    public static void encodeKeyValuePair(String key, Object value, LineWriter writer, int depth, EncodeOptions options,
+                                          List<String> siblings, Set<String> rootLiteralKeys, String pathPrefix, Integer remainingDepth,
+                                          Set<String> blockedKeys) {
+        var foldResult = KeyFoldingUtil.tryFoldKeyChain(key, value, siblings, options, rootLiteralKeys, pathPrefix, remainingDepth, blockedKeys);
+        if (foldResult != null) {
+            String foldedKey = foldResult.foldedKey();
+            Object remainder = foldResult.remainder();
+            Object leafValue = foldResult.leafValue();
+            String newPath = pathPrefix == null || pathPrefix.isEmpty() ? foldedKey : pathPrefix + "." + foldedKey;
+            Integer newDepthBudget = remainingDepth != null ? remainingDepth - foldResult.segmentCount() : null;
+            if (blockedKeys != null) {
+                blockedKeys.add(foldedKey);
+            }
+
+            if (Normalize.isJsonPrimitive(leafValue)) {
+                writer.push(depth, Primitives.encodeKey(foldedKey) + ": " + Primitives.encodePrimitive(leafValue, options.getDelimiterValue()));
+                return;
+            } else if (Normalize.isJsonArray(leafValue)) {
+                encodeArray(foldedKey, (List<?>) leafValue, writer, depth, options, rootLiteralKeys, newPath);
+                return;
+            } else if (Normalize.isJsonObject(leafValue) && ((Map<String, Object>) leafValue).isEmpty()) {
+                writer.push(depth, Primitives.encodeKey(foldedKey) + ":");
+                return;
+            }
+
+            if (remainder != null && Normalize.isJsonObject(remainder)) {
+                writer.push(depth, Primitives.encodeKey(foldedKey) + ":");
+                encodeObject((Map<String, Object>) remainder, writer, depth + 1, options, rootLiteralKeys, newPath, newDepthBudget);
+                return;
+            }
+        }
+
         String encodedKey = Primitives.encodeKey(key);
 
         if (Normalize.isJsonPrimitive(value)) {
             writer.push(depth, encodedKey + ": " + Primitives.encodePrimitive(value, options.getDelimiterValue()));
         } else if (Normalize.isJsonArray(value)) {
-            encodeArray(key, (List<?>) value, writer, depth, options);
+            encodeArray(key, (List<?>) value, writer, depth, options, rootLiteralKeys, pathPrefix);
         } else if (Normalize.isJsonObject(value)) {
             Map<String, Object> nestedObj = (Map<String, Object>) value;
             if (nestedObj.isEmpty()) {
                 writer.push(depth, encodedKey + ":");
             } else {
                 writer.push(depth, encodedKey + ":");
-                encodeObject(nestedObj, writer, depth + 1, options);
+                String newPath = pathPrefix == null || pathPrefix.isEmpty() ? key : pathPrefix + "." + key;
+                encodeObject(nestedObj, writer, depth + 1, options, rootLiteralKeys, newPath, remainingDepth);
             }
         }
     }
 
     // Encode array
-    public static void encodeArray(String key, List<?> array, LineWriter writer, int depth, EncodeOptions options) {
+    public static void encodeArray(String key, List<?> array, LineWriter writer, int depth, EncodeOptions options,
+                                   Set<String> rootLiteralKeys, String pathPrefix) {
         if (array.isEmpty()) {
-            String header = Primitives.formatHeader(0, key, null, options.getDelimiterValue(), options.hasLengthMarker());
+            String header = Primitives.formatHeader(0, key, null, options.getDelimiterValue());
             writer.push(depth, header);
             return;
         }
@@ -105,7 +173,7 @@ public final class Encoders {
     }
 
     private static String formatInlineArray(List<?> values, String key, EncodeOptions options) {
-        String header = Primitives.formatHeader(values.size(), key, null, options.getDelimiterValue(), options.hasLengthMarker());
+        String header = Primitives.formatHeader(values.size(), key, null, options.getDelimiterValue());
         if (values.isEmpty()) {
             return header;
         }
@@ -115,7 +183,7 @@ public final class Encoders {
 
     // Encode array of arrays as list items
     private static void encodeArrayOfArraysAsListItems(String key, List<List<?>> arrays, LineWriter writer, int depth, EncodeOptions options) {
-        String header = Primitives.formatHeader(arrays.size(), key, null, options.getDelimiterValue(), options.hasLengthMarker());
+        String header = Primitives.formatHeader(arrays.size(), key, null, options.getDelimiterValue());
         writer.push(depth, header);
 
         for (List<?> arr : arrays) {
@@ -128,7 +196,7 @@ public final class Encoders {
 
     // Encode array of objects as tabular
     private static void encodeArrayOfObjectsAsTabular(String key, List<Map<String, Object>> rows, List<String> header, LineWriter writer, int depth, EncodeOptions options) {
-        String headerStr = Primitives.formatHeader(rows.size(), key, header, options.getDelimiterValue(), options.hasLengthMarker());
+        String headerStr = Primitives.formatHeader(rows.size(), key, header, options.getDelimiterValue());
         writer.push(depth, headerStr);
 
         writeTabularRows(rows, header, writer, depth + 1, options);
@@ -193,7 +261,7 @@ public final class Encoders {
 
     // Encode mixed array as list items
     private static void encodeMixedArrayAsListItems(String key, List<?> items, LineWriter writer, int depth, EncodeOptions options) {
-        String header = Primitives.formatHeader(items.size(), key, null, options.getDelimiterValue(), options.hasLengthMarker());
+        String header = Primitives.formatHeader(items.size(), key, null, options.getDelimiterValue());
         writer.push(depth, header);
 
         for (Object item : items) {
@@ -234,7 +302,7 @@ public final class Encoders {
             } else if (Normalize.isArrayOfObjects(arr)) {
                 List<String> header = detectTabularHeader((List<Map<String, Object>>) arr);
                 if (header != null) {
-                    String headerStr = Primitives.formatHeader(arr.size(), firstKey, header, options.getDelimiterValue(), options.hasLengthMarker());
+                    String headerStr = Primitives.formatHeader(arr.size(), firstKey, header, options.getDelimiterValue());
                     writer.push(depth, LIST_ITEM_PREFIX + headerStr);
                     writeTabularRows((List<Map<String, Object>>) arr, header, writer, depth + 1, options);
                 } else {

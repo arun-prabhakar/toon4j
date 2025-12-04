@@ -173,18 +173,15 @@ public final class Primitives {
     }
 
     // Format an array header
-    public static String formatHeader(int length, String key, List<String> fields, String delimiter, boolean lengthMarker) {
+    public static String formatHeader(int length, String key, List<String> fields, String delimiter) {
         StringBuilder header = new StringBuilder();
 
         if (key != null && !key.isEmpty()) {
             header.append(encodeKey(key));
         }
 
-        // Add length with optional marker
+        // Add length
         header.append("[");
-        if (lengthMarker) {
-            header.append("#");
-        }
         header.append(length);
 
         // Add delimiter marker if not default (comma)

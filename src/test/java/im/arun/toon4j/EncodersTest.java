@@ -261,15 +261,14 @@ class EncodersTest {
     }
 
     @Test
-    void testEncodeWithLengthMarker() {
-        EncodeOptions options = EncodeOptions.builder()
-            .lengthMarker(true)
-            .build();
+    void testEncodeWithoutLegacyLengthMarker() {
+        EncodeOptions options = EncodeOptions.builder().build();
 
         List<String> array = List.of("a", "b", "c");
         String result = Encoders.encodeValue(array, options);
 
-        assertTrue(result.contains("[#3]:"));
+        assertTrue(result.contains("[3]:"));
+        assertFalse(result.contains("#"));
     }
 
     @Test

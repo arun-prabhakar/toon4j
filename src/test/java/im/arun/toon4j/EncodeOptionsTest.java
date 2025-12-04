@@ -11,7 +11,10 @@ class EncodeOptionsTest {
         assertEquals(2, options.getIndent());
         assertEquals(Delimiter.COMMA, options.getDelimiter());
         assertEquals(",", options.getDelimiterValue());
-        assertFalse(options.hasLengthMarker());
+        assertEquals(KeyFolding.OFF, options.getKeyFolding());
+        assertFalse(options.isFlatten());
+        assertEquals(Integer.MAX_VALUE, options.getFlattenDepth());
+        assertNull(options.getReplacer());
     }
 
     @Test
@@ -19,13 +22,17 @@ class EncodeOptionsTest {
         EncodeOptions options = EncodeOptions.builder()
             .indent(4)
             .delimiter(Delimiter.TAB)
-            .lengthMarker(true)
+            .keyFolding(KeyFolding.SAFE)
+            .flatten(true)
+            .flattenDepth(3)
             .build();
 
         assertEquals(4, options.getIndent());
         assertEquals(Delimiter.TAB, options.getDelimiter());
         assertEquals("\t", options.getDelimiterValue());
-        assertTrue(options.hasLengthMarker());
+        assertEquals(KeyFolding.SAFE, options.getKeyFolding());
+        assertTrue(options.isFlatten());
+        assertEquals(3, options.getFlattenDepth());
     }
 
     @Test
@@ -33,7 +40,7 @@ class EncodeOptionsTest {
         EncodeOptions options = EncodeOptions.builder().build();
         assertEquals(2, options.getIndent());
         assertEquals(Delimiter.COMMA, options.getDelimiter());
-        assertFalse(options.hasLengthMarker());
+        assertEquals(KeyFolding.OFF, options.getKeyFolding());
     }
 
     @Test
@@ -52,18 +59,11 @@ class EncodeOptionsTest {
     }
 
     @Test
-    void testFactoryWithLengthMarker() {
-        EncodeOptions options = EncodeOptions.withLengthMarker();
-        assertEquals(2, options.getIndent());
-        assertTrue(options.hasLengthMarker());
-    }
-
-    @Test
     void testPresetCompact() {
         EncodeOptions options = EncodeOptions.compact();
         assertEquals(2, options.getIndent());
         assertEquals(Delimiter.TAB, options.getDelimiter());
-        assertFalse(options.hasLengthMarker());
+        assertEquals(KeyFolding.OFF, options.getKeyFolding());
     }
 
     @Test
@@ -71,7 +71,7 @@ class EncodeOptionsTest {
         EncodeOptions options = EncodeOptions.verbose();
         assertEquals(2, options.getIndent());
         assertEquals(Delimiter.TAB, options.getDelimiter());
-        assertTrue(options.hasLengthMarker());
+        assertEquals(KeyFolding.SAFE, options.getKeyFolding());
     }
 
     @Test

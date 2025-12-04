@@ -85,23 +85,20 @@ class PrimitivesTest {
     @Test
     void testFormatHeader() {
         // Simple array
-        assertEquals("[3]:", Primitives.formatHeader(3, null, null, ",", false));
+        assertEquals("[3]:", Primitives.formatHeader(3, null, null, ","));
 
         // With key
-        assertEquals("items[3]:", Primitives.formatHeader(3, "items", null, ",", false));
+        assertEquals("items[3]:", Primitives.formatHeader(3, "items", null, ","));
 
         // With fields (tabular)
         assertEquals("items[2]{id,name}:",
-            Primitives.formatHeader(2, "items", java.util.List.of("id", "name"), ",", false));
-
-        // With length marker
-        assertEquals("items[#3]:", Primitives.formatHeader(3, "items", null, ",", true));
+            Primitives.formatHeader(2, "items", java.util.List.of("id", "name"), ","));
 
         // With tab delimiter
-        assertEquals("items[3\t]:", Primitives.formatHeader(3, "items", null, "\t", false));
+        assertEquals("items[3\t]:", Primitives.formatHeader(3, "items", null, "\t"));
 
         // With pipe delimiter
-        assertEquals("items[3|]:", Primitives.formatHeader(3, "items", null, "|", false));
+        assertEquals("items[3|]:", Primitives.formatHeader(3, "items", null, "|"));
     }
 
     @Test

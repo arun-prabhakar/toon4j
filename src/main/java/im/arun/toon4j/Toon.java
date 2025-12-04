@@ -1,6 +1,10 @@
 package im.arun.toon4j;
 
 import im.arun.toon4j.core.Constants;
+import im.arun.toon4j.core.DecodeTransformer;
+import im.arun.toon4j.core.EventBuilder;
+import im.arun.toon4j.core.PathExpander;
+import im.arun.toon4j.core.Replacer;
 
 /**
  * Token-Oriented Object Notation (TOON) encoder and decoder for Java.
@@ -75,8 +79,41 @@ public final class Toon {
         // Normalize the value
         Object normalized = Normalize.normalizeValue(value);
 
+        if (options.getReplacer() != null) {
+            normalized = Replacer.apply(normalized, options.getReplacer());
+        }
+
         // Encode the normalized value
         return Encoders.encodeValue(normalized, options);
+    }
+
+    /**
+     * Encode a value to TOON format as an iterable of lines.
+     *
+     * @param value the value to encode
+     * @return TOON-formatted lines without trailing newlines
+     */
+    public static Iterable<String> encodeLines(Object value) {
+        return encodeLines(value, new EncodeOptions());
+    }
+
+    /**
+     * Encode a value to TOON format as an iterable of lines with options.
+     *
+     * @param value the value to encode
+     * @param options encoding options
+     * @return TOON-formatted lines without trailing newlines
+     */
+    public static Iterable<String> encodeLines(Object value, EncodeOptions options) {
+        if (value == null) {
+            return java.util.List.of(Constants.NULL_LITERAL);
+        }
+
+        Object normalized = Normalize.normalizeValue(value);
+        if (options.getReplacer() != null) {
+            normalized = Replacer.apply(normalized, options.getReplacer());
+        }
+        return Encoders.encodeValueLines(normalized, options);
     }
 
     /**
@@ -112,7 +149,60 @@ public final class Toon {
 
         // Create cursor and decode
         LineCursor cursor = new LineCursor(lines);
-        return ToonDecoders.decodeValue(cursor, options);
+        Object decoded = ToonDecoders.decodeValue(cursor, options);
+
+        if (options.getExpandPaths() == PathExpansion.SAFE) {
+            decoded = PathExpander.expand(decoded, options.getExpandPaths());
+        }
+        if (options.getReplacer() != null) {
+            decoded = DecodeTransformer.apply(decoded, options.getReplacer());
+        }
+        return decoded;
+    }
+
+    /**
+     * Decode TOON content to streaming events (built from the decoded value).
+     *
+     * @param input TOON-formatted string
+     * @param options decoding options
+     * @return list of decode events in traversal order
+     */
+    public static java.util.List<DecodeEvent> decodeToEvents(String input, DecodeOptions options) {
+        Object decoded = decode(input, options);
+        return EventBuilder.buildEvents(decoded);
+    }
+
+    /**
+     * Decode TOON lines to streaming events (built from the decoded value).
+     */
+    public static java.util.List<DecodeEvent> decodeLinesToEvents(Iterable<String> lines, DecodeOptions options) {
+        Object decoded = decodeLines(lines, options);
+        return EventBuilder.buildEvents(decoded);
+    }
+
+    /**
+     * Decode TOON lines (already split) to Java objects with custom options.
+     *
+     * @param lines iterable of TOON lines (no trailing newline characters)
+     * @param options decoding options
+     * @return decoded value (Map, List, or primitive)
+     */
+    public static Object decodeLines(Iterable<String> lines, DecodeOptions options) {
+        java.util.List<ParsedLine> parsedLines = Scanner.scanLines(lines, options.getIndent(), options.isStrict());
+
+        if (parsedLines.isEmpty()) {
+            throw new IllegalArgumentException("Cannot decode empty input: lines must yield at least one entry");
+        }
+
+        LineCursor cursor = new LineCursor(parsedLines);
+        Object decoded = ToonDecoders.decodeValue(cursor, options);
+        if (options.getExpandPaths() == PathExpansion.SAFE) {
+            decoded = PathExpander.expand(decoded, options.getExpandPaths());
+        }
+        if (options.getReplacer() != null) {
+            decoded = DecodeTransformer.apply(decoded, options.getReplacer());
+        }
+        return decoded;
     }
 
     /**
