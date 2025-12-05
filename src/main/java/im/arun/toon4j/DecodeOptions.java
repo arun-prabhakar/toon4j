@@ -65,6 +65,20 @@ public class DecodeOptions {
     }
 
     /**
+     * Create a strict decode options (with validation).
+     */
+    public static DecodeOptions strict() {
+        return new DecodeOptions(2, true, PathExpansion.OFF, null);
+    }
+
+    /**
+     * Create a strict decode options with custom indent.
+     */
+    public static DecodeOptions strict(int indent) {
+        return new DecodeOptions(indent, true, PathExpansion.OFF, null);
+    }
+
+    /**
      * Create a lenient decode options (no strict validation).
      */
     public static DecodeOptions lenient() {

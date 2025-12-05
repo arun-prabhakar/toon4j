@@ -57,6 +57,61 @@ class NormalizeTest {
     }
 
     @Test
+    void testNormalizeBigDecimal() {
+        assertEquals(42L, Normalize.normalizeValue(new java.math.BigDecimal("42")));
+        assertEquals(3.5, Normalize.normalizeValue(new java.math.BigDecimal("3.5")));
+    }
+
+    @Test
+    void testNormalizeOptionalAndStream() {
+        assertNull(Normalize.normalizeValue(Optional.empty()));
+        assertEquals("value", Normalize.normalizeValue(Optional.of("value")));
+
+        Object streamResult = Normalize.normalizeValue(java.util.stream.Stream.of(1, 2, 3));
+        assertEquals(List.of(1, 2, 3), streamResult);
+    }
+
+    @Test
+    void testNormalizePrimitiveArrays() {
+        assertEquals(List.of(1, 2, 3), Normalize.normalizeValue(new int[]{1, 2, 3}));
+        assertEquals(List.of(1L, 2L), Normalize.normalizeValue(new long[]{1L, 2L}));
+        assertEquals(List.of(true, false), Normalize.normalizeValue(new boolean[]{true, false}));
+        assertEquals(List.of(1, 2), Normalize.normalizeValue(new byte[]{1, 2}));
+        assertEquals(List.of(1, 2), Normalize.normalizeValue(new short[]{1, 2}));
+        assertEquals(List.of("a", "b"), Normalize.normalizeValue(new char[]{'a', 'b'}));
+
+        List<?> normalizedFloats = (List<?>) Normalize.normalizeValue(new float[]{-0f, Float.POSITIVE_INFINITY});
+        assertEquals(0, normalizedFloats.get(0));
+        assertNull(normalizedFloats.get(1));
+
+        List<?> normalizedDoubles = (List<?>) Normalize.normalizeValue(new double[]{1.0, Double.NaN});
+        assertEquals(1L, normalizedDoubles.get(0));
+        assertNull(normalizedDoubles.get(1));
+    }
+
+    @Test
+    void testNormalizePojo() {
+        class SamplePojo {
+            private final String name;
+            private final int score;
+            SamplePojo(String name, int score) {
+                this.name = name;
+                this.score = score;
+            }
+            public String getName() { return name; }
+            public int getScore() { return score; }
+            public boolean isActive() { return true; }
+        }
+
+        Object normalized = Normalize.normalizeValue(new SamplePojo("Ada", 9));
+        assertTrue(normalized instanceof Map);
+        Map<?, ?> map = (Map<?, ?>) normalized;
+        assertEquals("Ada", map.get("name"));
+        assertEquals(9, map.get("score"));
+        assertEquals(true, map.get("active"));
+    }
+
+    @Test
     void testNormalizeCollection() {
         List<Object> list = List.of(1, 2, 3);
         Object result = Normalize.normalizeValue(list);

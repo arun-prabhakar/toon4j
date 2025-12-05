@@ -110,9 +110,73 @@ class DecodeOptionsTest {
 
     @Test
     void testStrictMode() {
-        // Note: Current DecodeOptions only has lenient factory
-        // This test documents expected behavior if strict mode is added
         DecodeOptions options = DecodeOptions.lenient();
-        assertFalse(options.isStrict(), "Default should be lenient (not strict)");
+        assertFalse(options.isStrict(), "Lenient mode should not be strict");
+    }
+
+    @Test
+    void testStrictFactory() {
+        DecodeOptions options = DecodeOptions.strict();
+        assertNotNull(options);
+        assertEquals(2, options.getIndent());
+        assertTrue(options.isStrict(), "Strict factory should create strict options");
+    }
+
+    @Test
+    void testStrictWithCustomIndent() {
+        DecodeOptions options = DecodeOptions.strict(4);
+        assertEquals(4, options.getIndent());
+        assertTrue(options.isStrict(), "Strict with custom indent should be strict");
+    }
+
+    @Test
+    void testStrictIndentSizeOne() {
+        DecodeOptions options = DecodeOptions.strict(1);
+        assertEquals(1, options.getIndent());
+        assertTrue(options.isStrict());
+    }
+
+    @Test
+    void testStrictIndentZeroThrows() {
+        assertThrows(IllegalArgumentException.class,
+            () -> DecodeOptions.strict(0));
+    }
+
+    @Test
+    void testDefaultConstructor() {
+        DecodeOptions options = new DecodeOptions();
+        assertEquals(2, options.getIndent());
+        assertTrue(options.isStrict(), "Default constructor should create strict options");
+    }
+
+    @Test
+    void testWithPathExpansion() {
+        DecodeOptions options = DecodeOptions.withPathExpansion(PathExpansion.SAFE);
+        assertEquals(PathExpansion.SAFE, options.getExpandPaths());
+        assertTrue(options.isStrict());
+    }
+
+    @Test
+    void testWithReplacer() {
+        DecodeReplacer replacer = (key, value, path) -> value;
+        DecodeOptions options = DecodeOptions.withReplacer(replacer);
+        assertNotNull(options.getReplacer());
+    }
+
+    @Test
+    void testFullConstructor() {
+        DecodeReplacer replacer = (key, value, path) -> value;
+        DecodeOptions options = new DecodeOptions(4, false, PathExpansion.SAFE, replacer);
+
+        assertEquals(4, options.getIndent());
+        assertFalse(options.isStrict());
+        assertEquals(PathExpansion.SAFE, options.getExpandPaths());
+        assertNotNull(options.getReplacer());
+    }
+
+    @Test
+    void testNullPathExpansionDefaultsToOff() {
+        DecodeOptions options = new DecodeOptions(2, true, null);
+        assertEquals(PathExpansion.OFF, options.getExpandPaths());
     }
 }
