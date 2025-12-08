@@ -41,4 +41,25 @@ class ReflectionConverterTest {
         assertEquals(10, map.get("score"));
         assertEquals(true, map.get("active"));
     }
+
+    static class FieldOnlyPojo {
+        String title = "t";
+        int count = 2;
+    }
+
+    record RecordPojo(String id, int qty) {}
+
+    @Test
+    void convertsPojoUsingFieldsWhenNoGetters() {
+        Map<String, Object> map = ReflectionConverter.toMap(new FieldOnlyPojo());
+        assertEquals("t", map.get("title"));
+        assertEquals(2, map.get("count"));
+    }
+
+    @Test
+    void convertsRecordComponents() {
+        Map<String, Object> map = ReflectionConverter.toMap(new RecordPojo("r1", 5));
+        assertEquals("r1", map.get("id"));
+        assertEquals(5, map.get("qty"));
+    }
 }

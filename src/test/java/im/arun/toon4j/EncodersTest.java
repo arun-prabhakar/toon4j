@@ -467,6 +467,58 @@ class EncodersTest {
         assertTrue(result.contains("- [3]: 3,4,5"));
     }
 
+    @Test
+    void testKeyFoldingFlatteningCreatesDottedPath() {
+        EncodeOptions options = EncodeOptions.builder()
+            .flatten(true)
+            .flattenDepth(5)
+            .keyFolding(KeyFolding.SAFE)
+            .build();
+
+        Map<String, Object> value = new LinkedHashMap<>();
+        value.put("deep", Map.of("leaf", 1));
+        Map<String, Object> root = new LinkedHashMap<>();
+        root.put("root", value);
+
+        String encoded = Encoders.encodeValue(root, options);
+        assertTrue(encoded.contains("root.deep.leaf: 1"));
+    }
+
+    @Test
+    void testKeyFoldingSkipsWhenLiteralPathPresent() {
+        EncodeOptions options = EncodeOptions.builder()
+            .flatten(true)
+            .flattenDepth(5)
+            .keyFolding(KeyFolding.SAFE)
+            .build();
+
+        Map<String, Object> root = new LinkedHashMap<>();
+        root.put("root.leaf", 5); // literal dotted key that should be preserved
+        root.put("root", Map.of("leaf", 1));
+
+        String encoded = Encoders.encodeValue(root, options);
+        assertTrue(encoded.contains("root:"));
+        assertTrue(encoded.contains("root.leaf: 5"));
+    }
+
+    @Test
+    void testArrayTabularFallbackWhenHeaderMissing() {
+        LineWriter writer = new LineWriter(2);
+        EncodeOptions options = EncodeOptions.builder().build();
+
+        List<Map<String, Object>> rows = List.of(
+            createMap("id", 1, "name", "Ada"),
+            createMap("id", 2) // missing name column -> not tabular
+        );
+
+        Encoders.encodeArray("users", rows, writer, 0, options);
+
+        String result = writer.toString();
+        assertTrue(result.contains("users[2]:"));
+        assertTrue(result.contains("- id: 1"));
+        assertTrue(result.contains("- id: 2"));
+    }
+
     // Helper method
     private Map<String, Object> createMap(Object... keyValues) {
         Map<String, Object> map = new LinkedHashMap<>();

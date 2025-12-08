@@ -283,6 +283,77 @@ class ToonTest {
     }
 
     @Test
+    void testEncodeWithReplacer() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("password", "secret");
+        data.put("name", "Ada");
+
+        EncodeOptions options = EncodeOptions.builder()
+            .replacer((key, value, path) -> "password".equals(key) ? EncodeReplacer.OMIT : value)
+            .build();
+
+        String result = Toon.encode(data, options);
+        assertFalse(result.contains("password"));
+        assertTrue(result.contains("name: Ada"));
+    }
+
+    @Test
+    void testEncodeLinesAndDecodeLinesRoundTrip() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("id", 1);
+        data.put("active", true);
+
+        Iterable<String> lines = Toon.encodeLines(data);
+        Object decoded = Toon.decodeLines(lines, new DecodeOptions());
+        assertEquals(data, decoded);
+    }
+
+    @Test
+    void testEncodeLinesNullProducesLiteralNullLine() {
+        Iterable<String> lines = Toon.encodeLines(null);
+        assertEquals(List.of("null"), lines);
+    }
+
+    @Test
+    void testDecodeEmptyInputThrows() {
+        assertThrows(IllegalArgumentException.class, () -> Toon.decode("", new DecodeOptions()));
+    }
+
+    @Test
+    void testDecodeLinesEmptyIterableThrows() {
+        Iterable<String> empty = List.of();
+        assertThrows(IllegalArgumentException.class, () -> Toon.decodeLines(empty, new DecodeOptions()));
+    }
+
+    static class SimplePojo {
+        public int id;
+        public String name;
+    }
+
+    @Test
+    void testDecodeToPojo() {
+        String input = "id: 5\nname: Ada";
+        SimplePojo pojo = Toon.decode(input, SimplePojo.class, new DecodeOptions());
+        assertEquals(5, pojo.id);
+        assertEquals("Ada", pojo.name);
+    }
+
+    @Test
+    void testDecodeWithPathExpansionSafe() {
+        String input = "user.name: Ada\nuser.age: 30";
+        DecodeOptions options = new DecodeOptions(2, true, PathExpansion.SAFE, null);
+        Map<?, ?> decoded = (Map<?, ?>) Toon.decode(input, options);
+        Map<?, ?> user = (Map<?, ?>) decoded.get("user");
+        assertEquals("Ada", user.get("name"));
+        assertEquals(30, user.get("age"));
+    }
+
+    @Test
+    void testDecodeWithNullTargetClassThrows() {
+        assertThrows(IllegalArgumentException.class, () -> Toon.decode("id: 1", null, new DecodeOptions()));
+    }
+
+    @Test
     void testDateConversion() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("timestamp", new Date(1700000000000L));

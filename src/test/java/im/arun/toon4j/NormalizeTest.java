@@ -79,6 +79,7 @@ class NormalizeTest {
         assertEquals(List.of(1, 2), Normalize.normalizeValue(new byte[]{1, 2}));
         assertEquals(List.of(1, 2), Normalize.normalizeValue(new short[]{1, 2}));
         assertEquals(List.of("a", "b"), Normalize.normalizeValue(new char[]{'a', 'b'}));
+        assertEquals(Arrays.asList("x", 1, null), Normalize.normalizeValue(new Object[]{"x", 1, null}));
 
         List<?> normalizedFloats = (List<?>) Normalize.normalizeValue(new float[]{-0f, Float.POSITIVE_INFINITY});
         assertEquals(0, normalizedFloats.get(0));
@@ -87,6 +88,41 @@ class NormalizeTest {
         List<?> normalizedDoubles = (List<?>) Normalize.normalizeValue(new double[]{1.0, Double.NaN});
         assertEquals(1L, normalizedDoubles.get(0));
         assertNull(normalizedDoubles.get(1));
+    }
+
+    @Test
+    void testNormalizeNumbersEdgeCases() {
+        assertEquals(10L, Normalize.normalizeValue(10.0d)); // whole double -> long
+        assertEquals(5L, Normalize.normalizeValue(5.0f)); // whole float -> long
+        assertEquals(1.5d, Normalize.normalizeValue(1.5d));
+        double inRange = (double) Long.MAX_VALUE;
+        assertEquals(Long.MAX_VALUE, Normalize.normalizeValue(inRange));
+        double large = (double) Long.MAX_VALUE * 2.0; // outside long range
+        assertEquals(large, Normalize.normalizeValue(large));
+    }
+
+    @Test
+    void testNormalizeBigDecimalBoundaries() {
+        assertEquals(Long.MAX_VALUE, Normalize.normalizeValue(new java.math.BigDecimal(Long.MAX_VALUE)));
+        java.math.BigDecimal huge = new java.math.BigDecimal("9999999999999999999999999999");
+        assertEquals(huge.doubleValue(), Normalize.normalizeValue(huge));
+    }
+
+    @Test
+    void testNormalizeMapKeyStringification() {
+        Map<Object, Object> map = new LinkedHashMap<>();
+        map.put(123, "numberKey");
+        map.put(true, "boolKey");
+        Object normalized = Normalize.normalizeValue(map);
+        assertTrue(normalized instanceof Map);
+        Map<?, ?> result = (Map<?, ?>) normalized;
+        assertEquals("numberKey", result.get("123"));
+        assertEquals("boolKey", result.get("true"));
+    }
+
+    @Test
+    void testNormalizeUnsupportedTypeReturnsNull() {
+        assertNull(Normalize.normalizeValue(java.util.UUID.randomUUID()));
     }
 
     @Test
