@@ -1,4 +1,4 @@
-﻿![TOON logo with step‑by‑step guide](./.github/og.png)
+![TOON logo with step‑by‑step guide](./.github/og.png)
 # TOON4J ![GitHub License](https://img.shields.io/github/license/arun-prabhakar/toon4j)
 
 
@@ -97,7 +97,7 @@ Object data = Toon.decode(toon);
 ### Gradle
 
 ```gradle
-implementation 'im.arun:toon4j:1.1.0'
+implementation 'im.arun:toon4j:1.2.0'
 ```
 
 ## Examples

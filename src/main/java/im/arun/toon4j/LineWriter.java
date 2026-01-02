@@ -32,11 +32,6 @@ public class LineWriter {
         estimatedSize += line.length() + 1; // +1 for newline
     }
 
-    public void pushRaw(String content) {
-        lines.add(content);
-        estimatedSize += content.length() + 1; // +1 for newline
-    }
-
     public List<String> getLines() {
         return new ArrayList<>(lines);
     }

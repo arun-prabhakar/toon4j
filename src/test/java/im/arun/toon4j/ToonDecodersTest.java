@@ -454,4 +454,318 @@ class ToonDecodersTest {
         assertEquals(1, list.get(0).get("id"));
         assertEquals("Ada", list.get(0).get("name"));
     }
+
+    // ===== Branch coverage tests =====
+
+    @Test
+    void testDecodeObjectWithMissingColon() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "invalid line without colon";
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        // Should throw when line has no colon
+        assertThrows(IllegalArgumentException.class, () -> ToonDecoders.decodeObject(cursor, 0, options));
+    }
+
+    @Test
+    void testDecodeInlineArrayStrictModeCountMismatch() {
+        DecodeOptions options = DecodeOptions.strict();
+        String input = "[5]: a,b,c"; // declares 5 but only 3 values
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            () -> ToonDecoders.decodeValue(cursor, options));
+        assertTrue(ex.getMessage().contains("Expected 5 items"));
+    }
+
+    @Test
+    void testDecodeTabularArrayStrictModeCountMismatch() {
+        DecodeOptions options = DecodeOptions.strict();
+        String input = "[5]{id,name}:\n  1,Ada\n  2,Bob"; // declares 5 but only 2 rows
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            () -> ToonDecoders.decodeValue(cursor, options));
+        assertTrue(ex.getMessage().contains("Expected 5 rows"));
+    }
+
+    @Test
+    void testDecodeTabularArrayFieldCountMismatch() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "[2]{id,name,extra}:\n  1,Ada\n  2,Bob"; // declares 3 fields but rows have only 2
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            () -> ToonDecoders.decodeValue(cursor, options));
+        assertTrue(ex.getMessage().contains("Expected 3 fields"));
+    }
+
+    @Test
+    void testDecodeListArrayStrictModeCountMismatch() {
+        DecodeOptions options = DecodeOptions.strict();
+        String input = "[5]:\n  - a\n  - b"; // declares 5 but only 2 items
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            () -> ToonDecoders.decodeValue(cursor, options));
+        assertTrue(ex.getMessage().contains("Expected 5 items"));
+    }
+
+    @Test
+    void testDecodeListArrayInvalidItem() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "[2]:\n  not a list item\n  - valid"; // first item doesn't start with -
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            () -> ToonDecoders.decodeValue(cursor, options));
+        assertTrue(ex.getMessage().contains("must start with"));
+    }
+
+    @Test
+    void testDecodeListItemEmptyMarker() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "[1]:\n  -"; // single hyphen only
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+        assertTrue(result instanceof List);
+
+        @SuppressWarnings("unchecked")
+        List<Object> list = (List<Object>) result;
+        assertEquals(1, list.size());
+        assertTrue(list.get(0) instanceof Map);
+        assertTrue(((Map<?, ?>) list.get(0)).isEmpty());
+    }
+
+    @Test
+    void testDecodeListItemEmptyAfterHyphen() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "[1]:\n  - "; // hyphen with space but no content
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+        assertTrue(result instanceof List);
+
+        @SuppressWarnings("unchecked")
+        List<Object> list = (List<Object>) result;
+        assertEquals(1, list.size());
+        assertTrue(list.get(0) instanceof Map);
+    }
+
+    @Test
+    void testDecodeListItemWithQuotedKey() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "[1]:\n  - \"x-header\": value";
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+        assertTrue(result instanceof List);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> list = (List<Map<String, Object>>) result;
+        assertEquals(1, list.size());
+        assertEquals("value", list.get(0).get("x-header"));
+    }
+
+    @Test
+    void testDecodeListItemWithNestedObject() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "[1]:\n  - parent:\n      child: nested";
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+        assertTrue(result instanceof List);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> list = (List<Map<String, Object>>) result;
+        assertEquals(1, list.size());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parent = (Map<String, Object>) list.get(0).get("parent");
+        assertEquals("nested", parent.get("child"));
+    }
+
+    @Test
+    void testDecodeObjectWithQuotedKeyColon() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "\"key:with:colons\": value";
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Map<String, Object> result = ToonDecoders.decodeObject(cursor, 0, options);
+        assertEquals("value", result.get("key:with:colons"));
+    }
+
+    @Test
+    void testDecodeTabularArrayDepthBreak() {
+        DecodeOptions options = DecodeOptions.lenient();
+        // Tabular array where rows don't continue at proper depth
+        String input = "[3]{id,name}:\n  1,Ada\nnextKey: val"; // second line is at depth 0
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+        assertTrue(result instanceof List);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> list = (List<Map<String, Object>>) result;
+        assertEquals(1, list.size()); // Only one row parsed before depth break
+    }
+
+    @Test
+    void testDecodeListArrayDepthBreak() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "[3]:\n  - a\nanotherKey: b"; // list item followed by shallow key
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+        assertTrue(result instanceof List);
+
+        @SuppressWarnings("unchecked")
+        List<Object> list = (List<Object>) result;
+        assertEquals(1, list.size()); // Only one item before depth break
+    }
+
+    @Test
+    void testDecodeObjectDepthBreak() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "outer:\n  inner: val\nsibling: other";
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Map<String, Object> result = ToonDecoders.decodeObject(cursor, 0, options);
+
+        assertEquals(2, result.size());
+        assertTrue(result.get("outer") instanceof Map);
+        assertEquals("other", result.get("sibling"));
+    }
+
+    @Test
+    void testDecodeKeyValueWithNestedArrayHeader() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "items[2]:\n  - first\n  - second";
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Map<String, Object> result = ToonDecoders.decodeObject(cursor, 0, options);
+
+        assertTrue(result.get("items") instanceof List);
+        @SuppressWarnings("unchecked")
+        List<Object> items = (List<Object>) result.get("items");
+        assertEquals(2, items.size());
+    }
+
+    @Test
+    void testDecodeObjectWithDifferentComputedDepth() {
+        DecodeOptions options = DecodeOptions.lenient();
+        // Object at depth 1 where baseDepth is 0
+        String input = "  name: Ada\n  age: 25";
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Map<String, Object> result = ToonDecoders.decodeObject(cursor, 0, options);
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void testDecodeValueWithKeyedArrayHeader() {
+        DecodeOptions options = DecodeOptions.lenient();
+        // Root array with key prefix (should not be root array)
+        String input = "key[3]: a,b,c";
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+        assertTrue(result instanceof Map);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> map = (Map<String, Object>) result;
+        assertTrue(map.get("key") instanceof List);
+    }
+
+    @Test
+    void testDecodeListItemWithNestedArray() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "[1]:\n  - [2]: x,y"; // List item contains inline array
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+        assertTrue(result instanceof List);
+
+        @SuppressWarnings("unchecked")
+        List<Object> outer = (List<Object>) result;
+        assertTrue(outer.get(0) instanceof List);
+
+        @SuppressWarnings("unchecked")
+        List<Object> inner = (List<Object>) outer.get(0);
+        assertEquals(2, inner.size());
+        assertEquals("x", inner.get(0));
+    }
+
+    @Test
+    void testDecodeListItemObjectWithManyFields() {
+        DecodeOptions options = DecodeOptions.lenient();
+        String input = "[1]:\n  - a: 1\n    b: 2\n    c: 3";
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> list = (List<Map<String, Object>>) result;
+        assertEquals(1, list.size());
+        assertEquals(3, list.get(0).size());
+        assertEquals(1, list.get(0).get("a"));
+        assertEquals(2, list.get(0).get("b"));
+        assertEquals(3, list.get(0).get("c"));
+    }
+
+    @Test
+    void testDecodeInlineArrayStrictModeSuccess() {
+        DecodeOptions options = DecodeOptions.strict();
+        String input = "[3]: a,b,c"; // correct count
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+        assertTrue(result instanceof List);
+        assertEquals(3, ((List<?>) result).size());
+    }
+
+    @Test
+    void testDecodeTabularArrayStrictModeSuccess() {
+        DecodeOptions options = DecodeOptions.strict();
+        String input = "[2]{id,name}:\n  1,Ada\n  2,Bob";
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+        assertTrue(result instanceof List);
+        assertEquals(2, ((List<?>) result).size());
+    }
+
+    @Test
+    void testDecodeListArrayStrictModeSuccess() {
+        DecodeOptions options = DecodeOptions.strict();
+        String input = "[2]:\n  - a\n  - b";
+        List<ParsedLine> lines = Scanner.scan(input, 2, false);
+        LineCursor cursor = new LineCursor(lines);
+
+        Object result = ToonDecoders.decodeValue(cursor, options);
+        assertTrue(result instanceof List);
+        assertEquals(2, ((List<?>) result).size());
+    }
 }

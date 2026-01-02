@@ -61,25 +61,6 @@ class LineWriterTest {
     }
 
     @Test
-    void testPushRaw() {
-        LineWriter writer = new LineWriter(2);
-        writer.pushRaw("raw line without indent");
-
-        assertEquals("raw line without indent", writer.toString());
-    }
-
-    @Test
-    void testPushRawAndNormalMixed() {
-        LineWriter writer = new LineWriter(2);
-        writer.push(0, "user:");
-        writer.pushRaw("  custom indent");
-        writer.push(1, "name: Ada");
-
-        String expected = "user:\n  custom indent\n  name: Ada";
-        assertEquals(expected, writer.toString());
-    }
-
-    @Test
     void testCustomIndentSize() {
         LineWriter writer = new LineWriter(4);
         writer.push(0, "root");
@@ -277,25 +258,6 @@ class LineWriterTest {
         assertEquals("    skip level", lines.get(1));
         assertEquals("  back to 1", lines.get(2));
         assertEquals("back to 0", lines.get(3));
-    }
-
-    @Test
-    void testPushRawWithEmptyString() {
-        LineWriter writer = new LineWriter(2);
-        writer.pushRaw("");
-
-        assertEquals("", writer.toString());
-        assertEquals(1, writer.getLines().size());
-    }
-
-    @Test
-    void testMultiplePushRaw() {
-        LineWriter writer = new LineWriter(2);
-        writer.pushRaw("line1");
-        writer.pushRaw("line2");
-        writer.pushRaw("line3");
-
-        assertEquals("line1\nline2\nline3", writer.toString());
     }
 
     @Test

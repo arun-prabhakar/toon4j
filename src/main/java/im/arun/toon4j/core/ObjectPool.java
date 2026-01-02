@@ -6,8 +6,26 @@ import java.util.List;
 /**
  * Thread-local object pools for frequently allocated objects.
  * Reduces GC pressure by reusing objects within the same thread.
+ *
+ * <p><b>Important:</b> In managed environments (servlet containers, thread pools,
+ * application servers), call {@link #cleanup()} when a thread is done using TOON4J
+ * to prevent memory leaks. This is especially critical in environments where threads
+ * are reused across different contexts.
+ *
+ * <p>Example usage in a servlet filter:
+ * <pre>{@code
+ * public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) {
+ *     try {
+ *         chain.doFilter(req, res);
+ *     } finally {
+ *         Toon.cleanupThreadLocals();  // Clean up TOON4J thread-local resources
+ *     }
+ * }
+ * }</pre>
+ *
+ * @see im.arun.toon4j.Toon#cleanupThreadLocals()
  */
-final class ObjectPool {
+public final class ObjectPool {
     private ObjectPool() {}
 
     // ThreadLocal StringBuilder pool
@@ -60,8 +78,17 @@ final class ObjectPool {
      * Clean up ThreadLocal resources to prevent memory leaks.
      * Should be called when the thread is done using pooled objects,
      * especially in managed thread pools or application servers.
+     *
+     * <p>Call this method:
+     * <ul>
+     *   <li>At the end of servlet request processing (in a filter)</li>
+     *   <li>Before returning a thread to a thread pool</li>
+     *   <li>In application shutdown hooks</li>
+     * </ul>
+     *
+     * @see im.arun.toon4j.Toon#cleanupThreadLocals()
      */
-    static void cleanup() {
+    public static void cleanup() {
         stringBuilderPool.remove();
         arrayListPool.remove();
     }

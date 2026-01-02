@@ -41,7 +41,7 @@ class LineCursorTest {
 
         ParsedLine line = cursor.peek();
         assertNotNull(line);
-        assertEquals("name: Ada", line.content);
+        assertEquals("name: Ada", line.content());
         assertEquals(0, cursor.getPosition()); // peek doesn't advance
     }
 
@@ -54,11 +54,11 @@ class LineCursorTest {
         LineCursor cursor = new LineCursor(lines);
 
         ParsedLine line1 = cursor.next();
-        assertEquals("line1", line1.content);
+        assertEquals("line1", line1.content());
         assertEquals(1, cursor.getPosition());
 
         ParsedLine line2 = cursor.next();
-        assertEquals("line2", line2.content);
+        assertEquals("line2", line2.content());
         assertEquals(2, cursor.getPosition());
 
         assertTrue(cursor.atEnd());
@@ -131,17 +131,17 @@ class LineCursorTest {
         // Peek at current (offset 0)
         ParsedLine line0 = cursor.peekAt(0);
         assertNotNull(line0);
-        assertEquals("line1", line0.content);
+        assertEquals("line1", line0.content());
 
         // Peek ahead (offset 1)
         ParsedLine line1 = cursor.peekAt(1);
         assertNotNull(line1);
-        assertEquals("line2", line1.content);
+        assertEquals("line2", line1.content());
 
         // Peek further (offset 2)
         ParsedLine line2 = cursor.peekAt(2);
         assertNotNull(line2);
-        assertEquals("line3", line2.content);
+        assertEquals("line3", line2.content());
 
         // Position should not change
         assertEquals(0, cursor.getPosition());
@@ -172,7 +172,7 @@ class LineCursorTest {
         // Peek backwards (negative offset)
         ParsedLine backwards = cursor.peekAt(-1);
         assertNotNull(backwards);
-        assertEquals("line1", backwards.content); // position 1 + offset -1 = position 0
+        assertEquals("line1", backwards.content()); // position 1 + offset -1 = position 0
 
         assertNull(cursor.peekAt(-2)); // position 1 + offset -2 = -1 (out of bounds)
         assertNull(cursor.peekAt(-10));
@@ -190,10 +190,10 @@ class LineCursorTest {
         cursor.advance(); // Position 1
 
         ParsedLine current = cursor.peekAt(0);
-        assertEquals("line2", current.content);
+        assertEquals("line2", current.content());
 
         ParsedLine next = cursor.peekAt(1);
-        assertEquals("line3", next.content);
+        assertEquals("line3", next.content());
 
         assertNull(cursor.peekAt(2)); // Beyond end
     }
@@ -273,7 +273,7 @@ class LineCursorTest {
         assertEquals(0, cursor.getPosition());
 
         ParsedLine line = cursor.next();
-        assertEquals("line1", line.content);
+        assertEquals("line1", line.content());
         assertEquals(1, cursor.getPosition());
     }
 
@@ -307,16 +307,16 @@ class LineCursorTest {
         LineCursor cursor = new LineCursor(lines);
 
         ParsedLine peeked1 = cursor.peek();
-        assertEquals("line1", peeked1.content);
+        assertEquals("line1", peeked1.content());
 
         ParsedLine next1 = cursor.next();
-        assertEquals("line1", next1.content);
+        assertEquals("line1", next1.content());
 
         ParsedLine peeked2 = cursor.peek();
-        assertEquals("line2", peeked2.content);
+        assertEquals("line2", peeked2.content());
 
         ParsedLine next2 = cursor.next();
-        assertEquals("line2", next2.content);
+        assertEquals("line2", next2.content());
 
         assertEquals(2, cursor.getPosition());
     }
@@ -334,7 +334,7 @@ class LineCursorTest {
         for (int i = 0; i < 1000; i++) {
             assertFalse(cursor.atEnd());
             ParsedLine line = cursor.next();
-            assertEquals("line" + i, line.content);
+            assertEquals("line" + i, line.content());
         }
 
         assertTrue(cursor.atEnd());
@@ -392,10 +392,10 @@ class LineCursorTest {
         );
         LineCursor cursor = new LineCursor(lines);
 
-        assertEquals(0, cursor.next().depth);
-        assertEquals(1, cursor.next().depth);
-        assertEquals(2, cursor.next().depth);
-        assertEquals(1, cursor.next().depth);
+        assertEquals(0, cursor.next().depth());
+        assertEquals(1, cursor.next().depth());
+        assertEquals(2, cursor.next().depth());
+        assertEquals(1, cursor.next().depth());
     }
 
     @Test
@@ -422,9 +422,9 @@ class LineCursorTest {
         );
         LineCursor cursor = new LineCursor(lines);
 
-        assertEquals(5, cursor.next().lineNumber);
-        assertEquals(10, cursor.next().lineNumber);
-        assertEquals(15, cursor.next().lineNumber);
+        assertEquals(5, cursor.next().lineNumber());
+        assertEquals(10, cursor.next().lineNumber());
+        assertEquals(15, cursor.next().lineNumber());
     }
 
     @Test

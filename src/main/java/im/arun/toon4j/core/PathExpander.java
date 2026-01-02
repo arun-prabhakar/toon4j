@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
  */
 public final class PathExpander {
     private static final Pattern IDENTIFIER_SEGMENT = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
+    private static final Pattern DOT_PATTERN = Pattern.compile("\\.");
 
     private PathExpander() {
     }
@@ -53,7 +54,7 @@ public final class PathExpander {
         if (key == null || !key.contains(".")) {
             return false;
         }
-        String[] segments = key.split("\\.");
+        String[] segments = DOT_PATTERN.split(key);
         for (String seg : segments) {
             if (!IDENTIFIER_SEGMENT.matcher(seg).matches()) {
                 return false;

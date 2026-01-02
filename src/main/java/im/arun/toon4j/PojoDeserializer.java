@@ -315,8 +315,9 @@ final class PojoDeserializer {
                     setters.put(propertyName, new MethodSetter(propertyName, method, propertyType, genericType));
                 }
             }
-        } catch (Exception ignored) {
-            // Continue to fields
+        } catch (Exception e) {
+            // Method introspection failed (e.g., security restrictions).
+            // Fall through to field-based deserialization.
         }
 
         // If no setters found, use fields

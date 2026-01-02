@@ -129,8 +129,10 @@ final class ReflectionConverter {
             try {
                 Object value = accessor.getValue(pojo);
                 out.put(accessor.name, value);
-            } catch (Throwable ignored) {
-                // Skip this accessor if it fails
+            } catch (Exception e) {
+                // Skip inaccessible or failing accessors (e.g., security restrictions,
+                // lazy-loading proxies throwing exceptions). This is intentional to allow
+                // partial serialization of POJOs with problematic fields.
             }
         }
 
@@ -143,7 +145,7 @@ final class ReflectionConverter {
     private static List<Accessor> buildAccessors(Class<?> cls) {
         List<Accessor> accessors = new ArrayList<>();
 
-        // Java records (if any)
+        // Java records: use record components as accessors
         try {
             if (cls.isRecord()) {
                 var components = cls.getRecordComponents();
@@ -153,8 +155,9 @@ final class ReflectionConverter {
                 }
                 return accessors;
             }
-        } catch (Throwable ignored) {
-            // Ignore and continue to getters/fields
+        } catch (Exception e) {
+            // Record introspection failed (e.g., security manager restrictions).
+            // Fall through to getter/field-based extraction.
         }
 
         // Public getters first (JavaBean style)
@@ -184,8 +187,9 @@ final class ReflectionConverter {
             for (Map.Entry<String, Method> entry : getters.entrySet()) {
                 accessors.add(new MethodAccessor(entry.getKey(), entry.getValue()));
             }
-        } catch (Throwable ignored) {
-            // Ignore and proceed to fields
+        } catch (Exception e) {
+            // Method introspection failed (e.g., security restrictions).
+            // Fall through to field-based extraction.
         }
 
         // If no getters found, fall back to declared fields

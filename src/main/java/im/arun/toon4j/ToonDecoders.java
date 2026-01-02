@@ -22,15 +22,15 @@ final class ToonDecoders {
         ParsedLine first = cursor.peek();
 
         // Check for root array: [N]: values (only if no key before bracket)
-        ArrayHeader header = parseArrayHeader(first.content);
+        ArrayHeader header = parseArrayHeader(first.content());
         if (header != null && header.key == null) {
             cursor.advance();
             return decodeArray(header, cursor, 0, options);
         }
 
         // Single primitive value
-        if (cursor.size() == 1 && !isKeyValueLine(first.content)) {
-            return parsePrimitive(first.content.trim());
+        if (cursor.size() == 1 && !isKeyValueLine(first.content())) {
+            return parsePrimitive(first.content().trim());
         }
 
         // Default to object
@@ -50,16 +50,16 @@ final class ToonDecoders {
 
         while (!cursor.atEnd()) {
             ParsedLine line = cursor.peek();
-            if (line == null || line.depth < baseDepth) {
+            if (line == null || line.depth() < baseDepth) {
                 break; // End of object
             }
 
             // Compute the actual depth from the first field encountered
-            if (computedDepth == null && line.depth >= baseDepth) {
-                computedDepth = line.depth;
+            if (computedDepth == null && line.depth() >= baseDepth) {
+                computedDepth = line.depth();
             }
 
-            if (line.depth == computedDepth) {
+            if (line.depth() == computedDepth) {
                 // Parse key-value pair
                 decodeKeyValuePair(line, cursor, computedDepth, obj, options);
             } else {
@@ -76,7 +76,7 @@ final class ToonDecoders {
      */
     private static void decodeKeyValuePair(ParsedLine line, LineCursor cursor, int baseDepth,
                                            Map<String, Object> obj, DecodeOptions options) {
-        String content = line.content;
+        String content = line.content();
 
         cursor.advance();
 
@@ -98,7 +98,7 @@ final class ToonDecoders {
             : findUnquotedColon(content);
 
         if (colonPos == -1) {
-            throw new IllegalArgumentException("Line " + line.lineNumber + ": Missing colon after key");
+            throw new IllegalArgumentException("Line " + line.lineNumber() + ": Missing colon after key");
         }
 
         // Extract value after colon
@@ -108,7 +108,7 @@ final class ToonDecoders {
         Object value;
 
         // Check for nested object (next line is deeper)
-        if (valueStr.isEmpty() && !cursor.atEnd() && cursor.peek().depth > baseDepth) {
+        if (valueStr.isEmpty() && !cursor.atEnd() && cursor.peek().depth() > baseDepth) {
             value = decodeObject(cursor, baseDepth + 1, options);
         }
         // Primitive value
@@ -172,18 +172,18 @@ final class ToonDecoders {
             ParsedLine line = cursor.peek();
 
             // Check depth
-            if (line.depth < baseDepth + 1) {
+            if (line.depth() < baseDepth + 1) {
                 break;
             }
 
-            if (line.depth == baseDepth + 1) {
+            if (line.depth() == baseDepth + 1) {
                 // Parse row
-                List<String> values = parseDelimitedValues(line.content, header.delimiter);
+                List<String> values = parseDelimitedValues(line.content(), header.delimiter);
 
                 if (values.size() != fields.size()) {
                     throw new IllegalArgumentException(
                         String.format("Line %d: Expected %d fields, got %d",
-                            line.lineNumber, fields.size(), values.size())
+                            line.lineNumber(), fields.size(), values.size())
                     );
                 }
 
@@ -222,16 +222,16 @@ final class ToonDecoders {
             ParsedLine line = cursor.peek();
 
             // Check depth
-            if (line.depth < baseDepth + 1) {
+            if (line.depth() < baseDepth + 1) {
                 break;
             }
 
-            if (line.depth == baseDepth + 1) {
+            if (line.depth() == baseDepth + 1) {
                 // Check for valid list item start
-                boolean isListItem = line.content.startsWith(LIST_ITEM_PREFIX) || line.content.equals(LIST_ITEM_MARKER);
+                boolean isListItem = line.content().startsWith(LIST_ITEM_PREFIX) || line.content().equals(LIST_ITEM_MARKER);
                 if (!isListItem) {
                     throw new IllegalArgumentException(
-                        "Line " + line.lineNumber + ": List item must start with '- ' or be a single '-'");
+                        "Line " + line.lineNumber() + ": List item must start with '- ' or be a single '-'");
                 }
 
                 Object item = decodeListItem(cursor, baseDepth + 1, header.delimiter, options);
@@ -255,7 +255,7 @@ final class ToonDecoders {
      */
     private static Object decodeListItem(LineCursor cursor, int baseDepth, String delimiter, DecodeOptions options) {
         ParsedLine line = cursor.next();
-        String content = line.content;
+        String content = line.content();
 
         // Case 1: Empty list item "-"
         if (content.equals(LIST_ITEM_MARKER)) {
@@ -301,7 +301,7 @@ final class ToonDecoders {
         String valueStr = afterHyphen.substring(colonPos + 1).trim();
 
         // Check if value is on next line (nested)
-        if (valueStr.isEmpty() && !cursor.atEnd() && cursor.peek().depth > baseDepth) {
+        if (valueStr.isEmpty() && !cursor.atEnd() && cursor.peek().depth() > baseDepth) {
             obj.put(key, decodeObject(cursor, baseDepth + 1, options));
         } else {
             obj.put(key, parsePrimitive(valueStr));
@@ -310,10 +310,10 @@ final class ToonDecoders {
         // Parse remaining fields at depth baseDepth + 1 (indented relative to "- ")
         while (!cursor.atEnd()) {
             ParsedLine line = cursor.peek();
-            if (line.depth < baseDepth + 1) {
+            if (line.depth() < baseDepth + 1) {
                 break;
             }
-            if (line.depth == baseDepth + 1) {
+            if (line.depth() == baseDepth + 1) {
                 decodeKeyValuePair(line, cursor, baseDepth + 1, obj, options);
             } else {
                 break;

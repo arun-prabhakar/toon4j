@@ -20,11 +20,11 @@ class ParsedLineTest {
             5
         );
 
-        assertEquals("  name: Ada", line.raw);
-        assertEquals(1, line.depth);
-        assertEquals(2, line.indent);
-        assertEquals("name: Ada", line.content);
-        assertEquals(5, line.lineNumber);
+        assertEquals("  name: Ada", line.raw());
+        assertEquals(1, line.depth());
+        assertEquals(2, line.indent());
+        assertEquals("name: Ada", line.content());
+        assertEquals(5, line.lineNumber());
     }
 
     @Test
@@ -37,9 +37,9 @@ class ParsedLineTest {
             1
         );
 
-        assertEquals(0, line.depth);
-        assertEquals(0, line.indent);
-        assertEquals("root", line.content);
+        assertEquals(0, line.depth());
+        assertEquals(0, line.indent());
+        assertEquals("root", line.content());
     }
 
     @Test
@@ -52,9 +52,9 @@ class ParsedLineTest {
             100
         );
 
-        assertEquals(5, line.depth);
-        assertEquals(10, line.indent);
-        assertEquals(100, line.lineNumber);
+        assertEquals(5, line.depth());
+        assertEquals(10, line.indent());
+        assertEquals(100, line.lineNumber());
     }
 
     @Test
@@ -67,8 +67,8 @@ class ParsedLineTest {
             1
         );
 
-        assertEquals("", line.raw);
-        assertEquals("", line.content);
+        assertEquals("", line.raw());
+        assertEquals("", line.content());
     }
 
     @Test
@@ -81,8 +81,8 @@ class ParsedLineTest {
             10
         );
 
-        assertEquals("     ", line.raw);
-        assertEquals(" ", line.content);
+        assertEquals("     ", line.raw());
+        assertEquals(" ", line.content());
     }
 
     @Test
@@ -98,9 +98,9 @@ class ParsedLineTest {
             1
         );
 
-        assertEquals(content, line.content);
-        assertTrue(line.content.contains("\""));
-        assertTrue(line.content.contains(","));
+        assertEquals(content, line.content());
+        assertTrue(line.content().contains("\""));
+        assertTrue(line.content().contains(","));
     }
 
     @Test
@@ -114,8 +114,8 @@ class ParsedLineTest {
             1
         );
 
-        assertEquals(content, line.content);
-        assertTrue(line.content.contains("\u2764\uFE0F"));
+        assertEquals(content, line.content());
+        assertTrue(line.content().contains("\u2764\uFE0F"));
     }
 
     @Test
@@ -174,9 +174,9 @@ class ParsedLineTest {
             1
         );
 
-        assertNotEquals(line.raw, line.content);
-        assertEquals("    content", line.raw);
-        assertEquals("content", line.content);
+        assertNotEquals(line.raw(), line.content());
+        assertEquals("    content", line.raw());
+        assertEquals("content", line.content());
     }
 
     @Test
@@ -184,13 +184,13 @@ class ParsedLineTest {
         // indent = depth * spacesPerLevel
         // For spacesPerLevel = 2
         ParsedLine line1 = new ParsedLine("  x", 1, 2, "x", 1);
-        assertEquals(line1.indent, line1.depth * 2);
+        assertEquals(line1.indent(), line1.depth() * 2);
 
         ParsedLine line2 = new ParsedLine("    x", 2, 4, "x", 2);
-        assertEquals(line2.indent, line2.depth * 2);
+        assertEquals(line2.indent(), line2.depth() * 2);
 
         ParsedLine line3 = new ParsedLine("      x", 3, 6, "x", 3);
-        assertEquals(line3.indent, line3.depth * 2);
+        assertEquals(line3.indent(), line3.depth() * 2);
     }
 
     @Test
@@ -203,7 +203,7 @@ class ParsedLineTest {
             999999
         );
 
-        assertEquals(999999, line.lineNumber);
+        assertEquals(999999, line.lineNumber());
         assertTrue(line.toString().contains("Line 999999"));
     }
 
@@ -218,8 +218,8 @@ class ParsedLineTest {
             1
         );
 
-        assertEquals(1000, line.content.length());
-        assertEquals(content, line.content);
+        assertEquals(1000, line.content().length());
+        assertEquals(content, line.content());
     }
 
     @Test
@@ -232,7 +232,7 @@ class ParsedLineTest {
             1
         );
 
-        assertTrue(line.content.contains("\t"));
+        assertTrue(line.content().contains("\t"));
     }
 
     @Test
@@ -247,8 +247,8 @@ class ParsedLineTest {
             1
         );
 
-        assertEquals(content, line.content);
-        assertTrue(line.content.contains("\n"));
+        assertEquals(content, line.content());
+        assertTrue(line.content().contains("\n"));
     }
 
     @Test
@@ -263,8 +263,8 @@ class ParsedLineTest {
             1
         );
 
-        assertNull(line.raw);
-        assertNull(line.content);
+        assertNull(line.raw());
+        assertNull(line.content());
     }
 
     @Test
@@ -278,8 +278,8 @@ class ParsedLineTest {
             1
         );
 
-        assertEquals(-1, line.depth);
-        assertEquals(-2, line.indent);
+        assertEquals(-1, line.depth());
+        assertEquals(-2, line.indent());
     }
 
     @Test
@@ -292,8 +292,8 @@ class ParsedLineTest {
             1
         );
 
-        assertTrue(line.content.contains("[3]"));
-        assertTrue(line.content.contains("{a,b,c}"));
+        assertTrue(line.content().contains("[3]"));
+        assertTrue(line.content().contains("{a,b,c}"));
     }
 
     @Test
@@ -306,8 +306,8 @@ class ParsedLineTest {
             5
         );
 
-        assertEquals("A1,2,9.99", line.content);
-        assertEquals(1, line.depth);
+        assertEquals("A1,2,9.99", line.content());
+        assertEquals(1, line.depth());
     }
 
     @Test
@@ -320,8 +320,8 @@ class ParsedLineTest {
             3
         );
 
-        assertTrue(line.content.startsWith("- "));
-        assertEquals("- value", line.content);
+        assertTrue(line.content().startsWith("- "));
+        assertEquals("- value", line.content());
     }
 
     @Test
@@ -334,8 +334,8 @@ class ParsedLineTest {
             10
         );
 
-        assertTrue(line.content.contains(":"));
-        String[] parts = line.content.split(":", 2);
+        assertTrue(line.content().contains(":"));
+        String[] parts = line.content().split(":", 2);
         assertEquals("name", parts[0]);
         assertEquals(" Ada", parts[1]);
     }
@@ -350,8 +350,8 @@ class ParsedLineTest {
             1
         );
 
-        assertTrue(line.content.contains("\\\\"));
-        assertTrue(line.content.contains("\""));
+        assertTrue(line.content().contains("\\\\"));
+        assertTrue(line.content().contains("\""));
     }
 
     @Test
@@ -364,7 +364,7 @@ class ParsedLineTest {
             1
         );
 
-        assertEquals("time: 12:30:45", line.content);
+        assertEquals("time: 12:30:45", line.content());
     }
 
     @Test
@@ -377,7 +377,7 @@ class ParsedLineTest {
             1
         );
 
-        assertTrue(line.content.contains(","));
-        assertEquals(3, line.content.split(",").length); // 3 parts split by 2 commas
+        assertTrue(line.content().contains(","));
+        assertEquals(3, line.content().split(",").length); // 3 parts split by 2 commas
     }
 }

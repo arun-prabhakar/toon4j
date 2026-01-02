@@ -6,7 +6,7 @@
 
     <groupId>im.arun</groupId>
     <artifactId>toon4j</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <packaging>jar</packaging>
 
     <name>TOON4J</name>
@@ -42,7 +42,7 @@
         <junit.version>5.10.0</junit.version>
 
         <!-- SonarQube properties -->
-        <sonar.organization>your-organization</sonar.organization>
+        <sonar.organization>arun-prabhakar</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <sonar.projectKey>toon4j</sonar.projectKey>
         <sonar.projectName>TOON4J</sonar.projectName>
@@ -82,23 +82,6 @@
             <artifactId>jmh-generator-annprocess</artifactId>
             <version>1.37</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.felipestanzani</groupId>
-            <artifactId>jtoon</artifactId>
-            <version>0.1.0</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/tools.jackson.core/jackson-core -->
-        <dependency>
-            <groupId>tools.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>3.0.1</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/tools.jackson.core/jackson-databind -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.15.2</version> <!-- Use the latest stable version -->
         </dependency>
     </dependencies>
 

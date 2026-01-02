@@ -8,7 +8,6 @@ import java.util.*;
 
 import static im.arun.toon4j.core.Constants.LIST_ITEM_PREFIX;
 
-@SuppressWarnings("unchecked")
 public final class Encoders {
     private Encoders() {}
 
@@ -17,6 +16,7 @@ public final class Encoders {
         return String.join("\n", encodeValueLines(value, options));
     }
 
+    @SuppressWarnings("unchecked")  // Safe: value type checked via Normalize methods before cast
     public static List<String> encodeValueLines(Object value, EncodeOptions options) {
         if (Normalize.isJsonPrimitive(value)) {
             return List.of(Primitives.encodePrimitive(value, options.getDelimiterValue()));
@@ -60,6 +60,7 @@ public final class Encoders {
     }
 
     // Encode object
+    @SuppressWarnings("unchecked")
     public static void encodeObject(Map<String, Object> obj, LineWriter writer, int depth, EncodeOptions options,
                                     Set<String> rootLiteralKeys, String pathPrefix, Integer remainingDepth) {
         List<String> keys = new ArrayList<>(obj.keySet());
@@ -70,7 +71,7 @@ public final class Encoders {
     }
 
     // Encode key-value pair
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked")  // Safe: value type checked via Normalize.isJsonObject/isJsonArray before cast
     public static void encodeKeyValuePair(String key, Object value, LineWriter writer, int depth, EncodeOptions options,
                                           List<String> siblings, Set<String> rootLiteralKeys, String pathPrefix, Integer remainingDepth,
                                           Set<String> blockedKeys) {
@@ -122,6 +123,7 @@ public final class Encoders {
     }
 
     // Encode array
+    @SuppressWarnings("unchecked")  // Safe: array element types checked via Normalize methods before cast
     public static void encodeArray(String key, List<?> array, LineWriter writer, int depth, EncodeOptions options,
                                    Set<String> rootLiteralKeys, String pathPrefix) {
         if (array.isEmpty()) {
@@ -260,6 +262,7 @@ public final class Encoders {
     }
 
     // Encode mixed array as list items
+    @SuppressWarnings("unchecked")  // Safe: item types checked via Normalize methods before cast
     private static void encodeMixedArrayAsListItems(String key, List<?> items, LineWriter writer, int depth, EncodeOptions options) {
         String header = Primitives.formatHeader(items.size(), key, null, options.getDelimiterValue());
         writer.push(depth, header);
@@ -280,6 +283,7 @@ public final class Encoders {
     }
 
     // Encode object as list item
+    @SuppressWarnings("unchecked")  // Safe: value types checked via Normalize methods before cast
     private static void encodeObjectAsListItem(Map<String, Object> obj, LineWriter writer, int depth, EncodeOptions options) {
         List<String> keys = new ArrayList<>(obj.keySet());
         if (keys.isEmpty()) {

@@ -3,6 +3,7 @@ package im.arun.toon4j;
 import im.arun.toon4j.core.Constants;
 import im.arun.toon4j.core.DecodeTransformer;
 import im.arun.toon4j.core.EventBuilder;
+import im.arun.toon4j.core.ObjectPool;
 import im.arun.toon4j.core.PathExpander;
 import im.arun.toon4j.core.Replacer;
 
@@ -48,6 +49,29 @@ import im.arun.toon4j.core.Replacer;
  */
 public final class Toon {
     private Toon() {}
+
+    /**
+     * Clean up thread-local resources used by TOON4J.
+     *
+     * <p>Call this method in managed environments (servlet containers, thread pools,
+     * application servers) to prevent memory leaks when threads are reused.
+     *
+     * <p>Example usage in a servlet filter:
+     * <pre>{@code
+     * public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) {
+     *     try {
+     *         chain.doFilter(req, res);
+     *     } finally {
+     *         Toon.cleanupThreadLocals();
+     *     }
+     * }
+     * }</pre>
+     *
+     * <p>This is a no-op if no thread-local resources have been allocated.
+     */
+    public static void cleanupThreadLocals() {
+        ObjectPool.cleanup();
+    }
 
     /**
      * Encode a value to TOON format with default options.
